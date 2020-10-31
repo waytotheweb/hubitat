@@ -2,6 +2,9 @@
  * Simple Virtual Window/Curtain/Roller/Shutter/Shade Driver that works on
  * Amazon Alexa
  *
+ *
+ * Version:  1.0
+ *
  */
 metadata {
     definition(name: "Virtual Window Blinds", namespace: "waytotheweb", author: "Jonathan Michaelson") {
