@@ -4,7 +4,7 @@
  *
  *
  * Version:  1.0
- *
+ * 
  */
 metadata {
     definition(name: "Virtual Resetting Switch", namespace: "waytotheweb", author: "Jonathan Michaelson") {
