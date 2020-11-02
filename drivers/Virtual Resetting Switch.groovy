@@ -10,23 +10,23 @@ metadata {
     definition(name: "Virtual Resetting Switch", namespace: "waytotheweb", author: "Jonathan Michaelson") {
         capability "Switch"
 
-	command "other"
+	command "reset"
     }
 }
 
 def on() {
     log.info "on()"
     sendEvent(name: "switch", value: "on")
-    runIn(2, "other")
+    runIn(2, "reset")
 }
 
 def off() {
     log.info "off()"
     sendEvent(name: "switch", value: "off")
-    runIn(2, "other")
+    runIn(2, "reset")
 }
 
-def other() {
-    log.info "other()"
-    sendEvent(name: "switch", value: "other")
+def reset() {
+    log.info "reset()"
+    sendEvent(name: "switch", value: "reset")
 }
