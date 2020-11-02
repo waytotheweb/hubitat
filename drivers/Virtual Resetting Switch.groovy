@@ -17,13 +17,13 @@ metadata {
 def on() {
     log.info "on()"
     sendEvent(name: "switch", value: "on")
-    other()
+    runIn(2, "other")
 }
 
 def off() {
     log.info "off()"
     sendEvent(name: "switch", value: "off")
-    other()
+    runIn(2, "other")
 }
 
 def other() {
