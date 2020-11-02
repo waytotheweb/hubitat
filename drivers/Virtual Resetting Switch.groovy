@@ -1,6 +1,6 @@
 /**
  * Simple Virtual Resetting Switch Driver that works on
- * Amazon Alexa to force on/off
+ * Amazon Alexa to force on/off then reset
  *
  *
  * Version:  1.0
