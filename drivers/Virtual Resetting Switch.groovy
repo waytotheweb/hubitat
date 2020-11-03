@@ -7,7 +7,7 @@
  *
  */
 metadata {
-    definition(name: "Virtual Resetting Switch", namespace: "waytotheweb", author: "Jonathan Michaelson") {
+    definition(name: "Virtual Resetting Switch", namespace: "waytotheweb", author: "Jonathan Michaelson", importUrl: "https://raw.githubusercontent.com/waytotheweb/hubitat/main/drivers/Virtual%20Resetting%20Switch.groovy") {
         capability "Switch"
 
 	command "reset"

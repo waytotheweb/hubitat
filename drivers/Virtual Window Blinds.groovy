@@ -7,7 +7,7 @@
  *
  */
 metadata {
-    definition(name: "Virtual Window Blinds", namespace: "waytotheweb", author: "Jonathan Michaelson") {
+    definition(name: "Virtual Window Blinds", namespace: "waytotheweb", author: "Jonathan Michaelson", importUrl: "https://raw.githubusercontent.com/waytotheweb/hubitat/main/drivers/Virtual%20Window%20Blinds.groovy") {
         capability "Window Shade"
     }
 }
