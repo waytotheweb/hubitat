@@ -9,8 +9,6 @@
 metadata {
     definition(name: "Virtual Window Blinds", namespace: "waytotheweb", author: "Jonathan Michaelson") {
         capability "Window Shade"
-
-	command "pause"
     }
 }
 
@@ -36,9 +34,4 @@ def setPosition(data){
         sendEvent(name: "windowShade", value: "open")
         sendEvent(name: "position", value: data)
     }
-}
-
-def pause() {
-    log.info "pause()"
-    sendEvent(name: "windowShade", value: "pause")
 }
