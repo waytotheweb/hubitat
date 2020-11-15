@@ -45,12 +45,12 @@ def parse(String description) {
 	if (description?.startsWith("read attr -")) {
 		def descMap = zigbee.parseDescriptionAsMap(description)
 		if (descMap.cluster == "0001" && descMap.attrId == "0020") {
-			def vBatt = Integer.parseInt(descMap.value,16) / 10
-			def pct = (vBatt - 2.1) / (3 - 2.1)
-			def roundedPct = Math.round(pct * 100)
-			if (roundedPct <= 0) roundedPct = 1
-			def batteryValue = Math.min(100, roundedPct)
-			sendEvent("name": "battery", "value": batteryValue, "displayed": true, isStateChange: true)
+			def rawValue = Integer.parseInt(descMap.value,16)
+			def minVolts = 20
+			def maxVolts = 30
+			def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
+			def batteryValue = Math.min(100, pct)
+			sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
 		}
 		if (descMap.cluster == "0400" && descMap.attrId == "0000") {
 			def rawLux = Integer.parseInt(descMap.value,16)
@@ -74,7 +74,7 @@ def refresh() {
 }
 
 def configure() {
-	Integer zDelay = 1000
+	Integer zDelay = 100
 
 	if (debugLogging) log.debug "configure()"
 
@@ -85,8 +85,8 @@ def configure() {
 		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0400 {${device.zigbeeId}} {}", "delay zDelay",
 	]
 
-	cmd += zigbee.configureReporting(0x0400, 0x0000, 0x21, 5, 600, 10)
-	cmd += zigbee.configureReporting(0x0001, 0x0020, 0x20, 3600, 3600, 1)
+	cmd += zigbee.configureReporting(0x0400, 0x0000, 0x21, 5, 60, 10)
+	cmd += zigbee.configureReporting(0x0001, 0x0020, 0x20, 60, 60, 1)
 
 	cmd += refresh()
 
