@@ -1,0 +1,94 @@
+/**
+ *  My Xiaomi Mijia Smart Light Sensor
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ *	Current Contributer : Jonathan Michaelson
+ *	Original Contributors : Graham Johnson (aka @orangebucket in the ST Community) for the VID for the new ST mobile app.
+ *
+ *  Updates:
+ *  -------
+ *  11-15-2020 : Initial commit, converted from ST
+ */
+
+import hubitat.zigbee.zcl.DataType
+
+metadata {
+	definition (name: "Zigbee Xiaomi Mijia Smart Light Sensor", namespace: "waytotheweb", author: "Jonathan Michaelson", importUrl: "https://raw.githubusercontent.com/waytotheweb/hubitat/main/drivers/XiaomiMijiaLightSensor.groovy") {
+		capability "IlluminanceMeasurement"
+		capability "Battery"
+		capability "Sensor"
+		capability "Configuration"
+		capability "Refresh"
+
+		fingerprint profileId: "0104", inClusters: "0000,0400,0003,0001", outClusters: "0003", manufacturer: "LUMI", model: "lumi.sen_ill.mgl01", deviceJoinName: "Xiaomi Mijia Smart Home Light Sensor"
+
+	}
+	preferences {
+		input name: "debugLogging", type: "bool", title: "Enable debug message logging", description: ""
+	}    
+}
+
+def parse(String description) {
+	if (debugLogging) log.debug "Incoming data from device : $description"
+	if (description?.startsWith("catchall:")) {
+		def descMap = zigbee.parseDescriptionAsMap(description)
+		if (debugLogging) log.debug "Desc Map : $descMap"
+	}
+	if (description?.startsWith("read attr -")) {
+		def descMap = zigbee.parseDescriptionAsMap(description)
+		if (descMap.cluster == "0001" && descMap.attrId == "0020") {
+			def vBatt = Integer.parseInt(descMap.value,16) / 10
+			def pct = (vBatt - 2.1) / (3 - 2.1)
+			def roundedPct = Math.round(pct * 100)
+			if (roundedPct <= 0) roundedPct = 1
+			def batteryValue = Math.min(100, roundedPct)
+			sendEvent("name": "battery", "value": batteryValue, "displayed": true, isStateChange: true)
+		}
+		if (descMap.cluster == "0400" && descMap.attrId == "0000") {
+			def rawLux = Integer.parseInt(descMap.value,16)
+			def lux = Math.round(rawLux > 0 ? Math.pow(10, rawLux / 10000.0) - 1.0 : 0).toString()
+			sendEvent("name": "illuminance", "value": lux, "unit": "lux", "displayed": true, isStateChange: true)
+		}
+	}
+}
+
+def refresh() {
+	Integer zDelay = 100
+
+	if (debugLogging) log.debug "refresh()"
+
+	def cmd = [
+		"he rattr 0x${device.deviceNetworkId} 1 0x0001 0","delay zDelay",
+		"he rattr 0x${device.deviceNetworkId} 1 0x0400 0","delay zDelay"
+	]
+
+	return cmd
+}
+
+def configure() {
+	Integer zDelay = 1000
+
+	if (debugLogging) log.debug "configure()"
+
+	def cmd = [
+		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0000 {${device.zigbeeId}} {}", "delay zDelay",
+		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0001 {${device.zigbeeId}} {}", "delay zDelay",
+		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0003 {${device.zigbeeId}} {}", "delay zDelay",
+		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0400 {${device.zigbeeId}} {}", "delay zDelay",
+	]
+
+	cmd += zigbee.configureReporting(0x0400, 0x0000, 0x21, 5, 600, 10)
+	cmd += zigbee.configureReporting(0x0001, 0x0020, 0x20, 3600, 3600, 1)
+
+	cmd += refresh()
+
+	return cmd
+}
