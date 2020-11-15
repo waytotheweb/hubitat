@@ -10,8 +10,8 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *	Current Contributer : Jonathan Michaelson
- *	Original Contributors : Graham Johnson (aka @orangebucket in the ST Community) for the VID for the new ST mobile app.
+ *	Current Contributer   : Jonathan Michaelson
+ *	Original Contributors : John Constantelos (https://github.com/jsconstantelos/SmartThings/blob/master/devicetypes/jsconstantelos/my-xiaomi-mijia-smart-light-sensor.src/my-xiaomi-mijia-smart-light-sensor.groovy)
  *
  *  Updates:
  *  -------
@@ -54,7 +54,7 @@ def parse(String description) {
 		}
 		if (descMap.cluster == "0400" && descMap.attrId == "0000") {
 			def rawLux = Integer.parseInt(descMap.value,16)
-			def lux = Math.round(rawLux > 0 ? Math.pow(10, rawLux / 10000.0) - 1.0 : 0).toString()
+			def lux = Math.round(Math.pow(10,(rawLux/10000))+ 1)
 			sendEvent("name": "illuminance", "value": lux, "unit": "lux", "displayed": true, isStateChange: true)
 		}
 	}
@@ -85,7 +85,7 @@ def configure() {
 		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0400 {${device.zigbeeId}} {}", "delay zDelay",
 	]
 
-	cmd += zigbee.configureReporting(0x0400, 0x0000, 0x21, 5, 60, 10)
+	cmd += zigbee.configureReporting(0x0400, 0x0000, 0x21, 5, 60, 300)
 	cmd += zigbee.configureReporting(0x0001, 0x0020, 0x20, 60, 60, 1)
 
 	cmd += refresh()
