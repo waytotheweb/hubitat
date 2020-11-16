@@ -28,6 +28,8 @@ metadata {
 		capability "Configuration"
 		capability "Refresh"
 
+		attribute "Voltage", ["string", "number"]
+
 		fingerprint profileId: "0104", inClusters: "0000,0400,0003,0001", outClusters: "0003", manufacturer: "LUMI", model: "lumi.sen_ill.mgl01", deviceJoinName: "Xiaomi Mijia Smart Home Light Sensor"
 
 	}
@@ -52,7 +54,7 @@ def parse(String description) {
 			def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
 			def batteryValue = Math.min(100, pct)
 			sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
-			sendEvent("name": "voltage", "value": batteryVolts, "unit": "v", "displayed": true, isStateChange: true)
+			sendEvent("name": "voltage", "value": batteryVolts, "unit": "volts", "displayed": true, isStateChange: true)
 		}
 		if (descMap.cluster == "0400" && descMap.attrId == "0000") {
 			def rawLux = Integer.parseInt(descMap.value,16)
