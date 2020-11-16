@@ -46,12 +46,13 @@ def parse(String description) {
 		def descMap = zigbee.parseDescriptionAsMap(description)
 		if (descMap.cluster == "0001" && descMap.attrId == "0020") {
 			def rawValue = Integer.parseInt(descMap.value,16)
+			def batteryVolts = (rawValue / 10).setScale(2, BigDecimal.ROUND_HALF_UP)
 			def minVolts = 20
 			def maxVolts = 30
 			def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
 			def batteryValue = Math.min(100, pct)
 			sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
-			sendEvent("name": "voltage", "value": (rawValue / 10).setScale(2, BigDecimal.ROUND_HALF_UP), "unit": "v", "displayed": true, isStateChange: true)
+			sendEvent("name": "voltage", "value": batteryVolts, "unit": "v", "displayed": true, isStateChange: true)
 		}
 		if (descMap.cluster == "0400" && descMap.attrId == "0000") {
 			def rawLux = Integer.parseInt(descMap.value,16)
