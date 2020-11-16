@@ -28,7 +28,7 @@ metadata {
 		capability "Configuration"
 		capability "Refresh"
 
-		attribute "Voltage", ["string", "number"]
+		attribute "voltage", "number"
 
 		fingerprint profileId: "0104", inClusters: "0000,0400,0003,0001", outClusters: "0003", manufacturer: "LUMI", model: "lumi.sen_ill.mgl01", deviceJoinName: "Xiaomi Mijia Smart Home Light Sensor"
 
