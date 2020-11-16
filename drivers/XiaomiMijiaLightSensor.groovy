@@ -66,8 +66,8 @@ def refresh() {
 	if (debugLogging) log.debug "refresh()"
 
 	def cmd = [
-		"he rattr 0x${device.deviceNetworkId} 1 0x0001 0","delay zDelay",
-		"he rattr 0x${device.deviceNetworkId} 1 0x0400 0","delay zDelay"
+		"he rattr 0x${device.deviceNetworkId} 1 0x0001 0","delay zDelay",	// battery
+		"he rattr 0x${device.deviceNetworkId} 1 0x0400 0","delay zDelay"	// luminance
 	]
 
 	return cmd
@@ -79,10 +79,10 @@ def configure() {
 	if (debugLogging) log.debug "configure()"
 
 	def cmd = [
-		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0000 {${device.zigbeeId}} {}", "delay zDelay",
-		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0001 {${device.zigbeeId}} {}", "delay zDelay",
-		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0003 {${device.zigbeeId}} {}", "delay zDelay",
-		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0400 {${device.zigbeeId}} {}", "delay zDelay",
+		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0000 {${device.zigbeeId}} {}", "delay zDelay",	// basic
+		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0001 {${device.zigbeeId}} {}", "delay zDelay",	// battery
+		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0003 {${device.zigbeeId}} {}", "delay zDelay",	// identify
+		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0400 {${device.zigbeeId}} {}", "delay zDelay",	// luminance
 	]
 
 	cmd += zigbee.configureReporting(0x0400, 0x0000, 0x21, 5, 60, 300)
