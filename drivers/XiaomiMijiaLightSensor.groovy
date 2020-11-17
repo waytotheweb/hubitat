@@ -73,8 +73,8 @@ def refresh() {
 
 	if (debugLogging) log.debug "refresh()"
 
-	cmd += zigbee.readAttribute(0x0001, 0x0020)
-	cmd += zigbee.readAttribute(0x0400, 0x0000)
+	cmd += zigbee.readAttribute(0x0001, 0x0020)	// battery
+	cmd += zigbee.readAttribute(0x0400, 0x0000)	// illuminance
 
 	return cmd
 }
