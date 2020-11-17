@@ -72,10 +72,9 @@ def refresh() {
 
 	if (debugLogging) log.debug "refresh()"
 
-	def cmd = [
-		"he rattr 0x${device.deviceNetworkId} 1 0x0001 0","delay zDelay",	// battery
-		"he rattr 0x${device.deviceNetworkId} 1 0x0400 0","delay zDelay"	// luminance
-	]
+	def cmd
+	cmd += zigbee.readAttribute(0x0001, 0x0020)	//battery
+	cmd += zigbee.readAttribute(0x0400, 0x0000)	//luminance
 
 	return cmd
 }
