@@ -62,7 +62,7 @@ def parse(String description) {
 			def rawLux = Integer.parseInt(descMap.value,16)
 			def lux = Math.round(Math.pow(10,(rawLux/10000))+ 1)
 			sendEvent("name": "illuminance", "value": lux, "unit": "lux", "displayed": true, isStateChange: true)
-			log.info "$device.displayName lux changed to $lux lumens"
+			log.info "$device.displayName illuminance changed to $lux"
 		}
 	}
 }
