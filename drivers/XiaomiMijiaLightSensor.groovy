@@ -69,25 +69,23 @@ def parse(String description) {
 
 def refresh() {
 	Integer zDelay = 1000
+	def cmd = []
 
 	if (debugLogging) log.debug "refresh()"
 
-	def cmd = [
-		"he rattr 0x${device.deviceNetworkId} 0x01 0x0000 0","delay zDelay",	// basic
-		"he rattr 0x${device.deviceNetworkId} 0x01 0x0001 0","delay zDelay",	// battery
-		"he rattr 0x${device.deviceNetworkId} 0x01 0x0003 0","delay zDelay",	// identify
-		"he rattr 0x${device.deviceNetworkId} 0x01 0x0400 0","delay zDelay",	// luminance
-	]
+	cmd += zigbee.readAttribute(0x0001, 0x0020)
+	cmd += zigbee.readAttribute(0x0400, 0x0000)
 
 	return cmd
 }
 
 def configure() {
 	Integer zDelay = 100
+	def cmd = []
 
 	if (debugLogging) log.debug "configure()"
 
-	def cmd = [
+	cmd = [
 		"zdo bind 0x${device.deviceNetworkId} 0x01 0x01 0x0000 {${device.zigbeeId}} {}", "delay zDelay",	// basic
 		"zdo bind 0x${device.deviceNetworkId} 0x01 0x01 0x0001 {${device.zigbeeId}} {}", "delay zDelay",	// battery
 		"zdo bind 0x${device.deviceNetworkId} 0x01 0x01 0x0003 {${device.zigbeeId}} {}", "delay zDelay",	// identify
