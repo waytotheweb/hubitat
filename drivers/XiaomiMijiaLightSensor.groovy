@@ -1,5 +1,5 @@
 /**
- *  Zigbee Xiaomi Mijia Smart Light Sensor
+ *  Xiaomi Mijia Smart Light Sensor
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -15,13 +15,13 @@
  *
  *  Updates:
  *  -------
- *  11-15-2020 : Initial commit, converted from ST
+ *  11-15-2020 : Initial commit, converted from ST and simplified
  */
 
 import hubitat.zigbee.zcl.DataType
 
 metadata {
-	definition (name: "Zigbee Xiaomi Mijia Smart Light Sensor", namespace: "waytotheweb", author: "Jonathan Michaelson", importUrl: "https://raw.githubusercontent.com/waytotheweb/hubitat/main/drivers/XiaomiMijiaLightSensor.groovy") {
+	definition (name: "Xiaomi Mijia Smart Light Sensor", namespace: "waytotheweb", author: "Jonathan Michaelson", importUrl: "https://raw.githubusercontent.com/waytotheweb/hubitat/main/drivers/XiaomiMijiaLightSensor.groovy") {
 		capability "IlluminanceMeasurement"
 		capability "Battery"
 		capability "Sensor"
@@ -89,8 +89,8 @@ def configure() {
 		"zdo bind 0x${device.deviceNetworkId} 1 1 0x0400 {${device.zigbeeId}} {}", "delay zDelay",	// luminance
 	]
 
-	cmd += zigbee.configureReporting(0x0400, 0x0000, 0x21, 5, 60, 300)
-	cmd += zigbee.configureReporting(0x0001, 0x0020, 0x20, 60, 60, 1)
+	cmd += zigbee.configureReporting(0x0400, 0x0000, 0x21, 10, 3600, 300)
+	cmd += zigbee.configureReporting(0x0001, 0x0020, 0x20, 3600, 3600, 1)
 
 	cmd += refresh()
 
