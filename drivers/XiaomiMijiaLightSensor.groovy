@@ -55,11 +55,14 @@ def parse(String description) {
 			def batteryValue = Math.min(100, pct)
 			sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
 			sendEvent("name": "voltage", "value": batteryVolts, "unit": "volts", "displayed": true, isStateChange: true)
+			log.info "$device.displayName battery changed to $batteryValue%"
+			log.info "$device.displayName voltage changed to $batteryVolts volts"
 		}
 		if (descMap.cluster == "0400" && descMap.attrId == "0000") {
 			def rawLux = Integer.parseInt(descMap.value,16)
 			def lux = Math.round(Math.pow(10,(rawLux/10000))+ 1)
 			sendEvent("name": "illuminance", "value": lux, "unit": "lux", "displayed": true, isStateChange: true)
+			log.info "$device.displayName lux changed to $lux lumens"
 		}
 	}
 }
