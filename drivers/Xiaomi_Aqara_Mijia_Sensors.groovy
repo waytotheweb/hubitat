@@ -10,7 +10,7 @@ metadata {
 		capability "Battery"
 		capability "Sensor"
 		capability "Refresh"
-	        capability "Health Check"
+		capability "Health Check"
 		capability "Configuration"
 
 		capability "IlluminanceMeasurement"
