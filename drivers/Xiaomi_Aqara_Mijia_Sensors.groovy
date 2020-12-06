@@ -12,6 +12,7 @@ metadata {
 		capability "Refresh"
 	        capability "Health Check"
 		capability "Configuration"
+
 		capability "IlluminanceMeasurement"
 		capability "RelativeHumidityMeasurement"
 		capability "TemperatureMeasurement"
@@ -20,12 +21,20 @@ metadata {
 		capability "MotionSensor"
 		capability "WaterSensor"
 
+		capability "PushableButton"
+		capability "HoldableButton"
+		capability "DoubleTapableButton"
+		capability "ReleasableButton"
+
 		attribute "voltage", "number"
 
 		fingerprint profileId: "0104", inClusters: "0000,0001,0003,0400", outClusters: "0003", manufacturer: "LUMI", model: "lumi.sen_ill.mgl01", deviceJoinName: "Xiaomi Mijia Light Sensor"
 		fingerprint profileId: "0104", inClusters: "0000, 0003, FFFF, 0402, 0403, 0405", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.weather", deviceJoinName: "Xiaomi Aqara Temperature Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,FFFF,0406,0400,0500,0001,0003", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.sensor_motion.aq2", deviceJoinName: "Xiaomi Aqara Motion Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,FFFF,0101,0001,0003", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.vibration.aq1", deviceJoinName: "Xiaomi Aqara Vibration Sensor"
+		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0006", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.sensor_magnet.aq2", deviceJoinName: "Xiaomi Aqara Contact Sensor"
+		fingerprint profileId: "0104", inClusters: "0000,0003,0019,FFFF,0012", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.remote.b186acn01", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
+		fingerprint profileId: "0104", inClusters: "0000,0003,0019,FFFF,0012", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.sensor_86sw1", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
 
 	}
 	preferences {
@@ -36,6 +45,7 @@ metadata {
 
 def parse(String description) {
 	if (debugLogging) log.debug "Incoming data from device : $description"
+	if (description.indexOf('attrId: FF01, encoding: 42') >= 0) return
 	if (description?.startsWith("catchall:")) {
 		def descMap = zigbee.parseDescriptionAsMap(description)
 
@@ -52,6 +62,7 @@ def parse(String description) {
 	}
 	if (description?.startsWith("read attr -")) {
 		def descMap = zigbee.parseDescriptionAsMap(description)
+		if (debugLogging) log.debug "cluster:$descMap.cluster, attrId:$descMap.attrId"
 
 		if (descMap.cluster == "0001" && descMap.attrId == "0020") {
 			parseBattery(descMap.value)
@@ -99,6 +110,31 @@ def parse(String description) {
 			if (infoLogging) log.info "$device.displayName acceleration changed to $status"
 			unschedule()
 			runIn(65, resetVibration)
+		}
+		if (descMap.cluster == "0006" && descMap.attrId == "0000") {
+			def rawValue = Integer.parseInt(descMap.value,16)
+			def contact = "closed"
+			if (rawValue == 1) contact = "open"
+			sendEvent("name": "contact", "value": contact, "unit": "", "displayed": true, isStateChange: true)
+			if (infoLogging) log.info "$device.displayName contact changed to $contact"
+		}
+		if (descMap.cluster == "0012" && descMap.attrId == "0055") {
+			def button = Integer.parseInt(descMap.endpoint,16) 
+			def action = Integer.parseInt(descMap.value,16)
+			if (debugLogging) log.debug "Button:$button, Action:$action"
+
+			if (action == 0) {
+				sendEvent(name:"held", value: button, isStateChange: true)
+				if (infoLogging) log.info "Button $button was held"
+			}
+			if (action == 1) {
+				sendEvent(name:"pushed", value: button, isStateChange: true)
+				if (infoLogging) log.info "Button $button was pushed $action time(s)"
+			}
+			if (action == 2) {
+				sendEvent(name:"doubleTapped", value: button, isStateChange: true)
+				if (infoLogging) log.info "Button $button was double tapped"
+			}
 		}
 	}
 }
