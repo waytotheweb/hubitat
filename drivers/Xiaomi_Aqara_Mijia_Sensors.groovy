@@ -19,11 +19,11 @@ metadata {
 		capability "AccelerationSensor"
 		capability "MotionSensor"
 		capability "WaterSensor"
+		capability "ContactSensor"
 
 		capability "PushableButton"
 		capability "HoldableButton"
 		capability "DoubleTapableButton"
-		capability "ReleasableButton"
 
 		attribute "voltage", "number"
 
@@ -96,14 +96,14 @@ def parse(String description) {
 			def rawValue = Integer.parseInt(descMap.value,16)
 			def status = "inactive"
 			if (rawValue == 1) status = "active"
-			sendEvent("name": "motion", "value": status,"displayed": true, isStateChange: true)
+			sendEvent("name": "motion", "value": status,, "displayed": true, isStateChange: true)
 			if (infoLogging) log.info "$device.displayName motion changed to $status"
 			unschedule()
 			runIn(65, resetMotion)
 		}
 		if (descMap.cluster == "0101" && (descMap.attrId == "0055" || descMap.attrId == "0508")) {
 			def status = "active"
-			sendEvent("name": "acceleration", "value": status, "displayed": true, isStateChange: true)
+			sendEvent("name": "acceleration", "value": status,, "displayed": true, isStateChange: true)
 			if (infoLogging) log.info "$device.displayName acceleration changed to $status"
 			unschedule()
 			runIn(65, resetVibration)
@@ -121,16 +121,20 @@ def parse(String description) {
 			if (debugLogging) log.debug "Button:$button, Action:$action"
 
 			if (action == 0) {
-				sendEvent("name": "button", "value": "held", "displayed": true, isStateChange: true)
+				sendEvent("name": "held", "value":  button, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "Button $button was held"
 			}
 			if (action == 1) {
-				sendEvent("name": "button", "value": "pushed", "displayed": true, isStateChange: true)
+				sendEvent("name": "pushed", "value":  button, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "Button $button was pushed $action time(s)"
 			}
 			if (action == 2) {
-				sendEvent("name": "button", "value": "doubleTapped", "displayed": true, isStateChange: true)
+				sendEvent("name": "doubleTapped", "value":  button, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "Button $button was double tapped"
+			}
+			if (action == 5) {
+				sendEvent("name": "released", "value":  button, "displayed": true, isStateChange: true)
+				if (infoLogging) log.info "Button $button was released"
 			}
 		}
 	}
@@ -138,14 +142,14 @@ def parse(String description) {
 
 def resetMotion() {
 	if (device.currentState('motion')?.value == "active"){
-		sendEvent("name": "motion", "value": "inactive", "unit": "", "displayed": true, isStateChange: true)
+		sendEvent("name": "motion", "value": "inactive", "displayed": true, isStateChange: true)
 		if (infoLogging) log.info "$device.displayName motion changed to inactive"
 	}
 }
 
 def resetVibration() {
 	if (device.currentState('acceleration')?.value == "active"){
-		sendEvent("name": "acceleration", "value": "inactive", "unit": "", "displayed": true, isStateChange: true)
+		sendEvent("name": "acceleration", "value": "inactive", "displayed": true, isStateChange: true)
 		if (infoLogging) log.info "$device.displayName acceleration changed to inactive"
 	}
 }
