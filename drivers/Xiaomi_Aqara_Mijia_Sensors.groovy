@@ -10,7 +10,6 @@ metadata {
 		capability "Battery"
 		capability "Sensor"
 		capability "Refresh"
-		capability "Health Check"
 		capability "Configuration"
 
 		capability "IlluminanceMeasurement"
@@ -46,20 +45,7 @@ metadata {
 def parse(String description) {
 	if (debugLogging) log.debug "Incoming data from device : $description"
 	if (description.indexOf('attrId: FF01, encoding: 42') >= 0) return
-	if (description?.startsWith("catchall:")) {
-		def descMap = zigbee.parseDescriptionAsMap(description)
 
-		if (debugLogging) log.debug "Desc Map : $descMap"
-
-		if (descMap) {
-			switch(descMap.clusterId) {
-				case 0x0000:
-			if ((descMap.data.get(4) == 1) && (descMap.data.get(5) == 0x21)) // Check CMD and Data Type
-				resultMap = parseBattery((descMap.data.get(7)<<8) + descMap.data.get(6))
-				break
-			}
-		}
-	}
 	if (description?.startsWith("read attr -")) {
 		def descMap = zigbee.parseDescriptionAsMap(description)
 		if (debugLogging) log.debug "cluster:$descMap.cluster, attrId:$descMap.attrId"
@@ -150,29 +136,6 @@ def parse(String description) {
 	}
 }
 
-private parseBattery(description) {
-	if (debugLogging) log.debug "Battery parse string = ${description}"
-	def MsgLength = description.size()
-	def rawValue
-	for (int i = 4; i < (MsgLength-3); i+=2) {
-		if (description[i..(i+1)] == "21") { // Search for byte preceeding battery voltage bytes
-			rawValue = Integer.parseInt((description[(i+4)..(i+5)] + description[(i+2)..(i+3)]),16)
-			break
-		}
-	}
-	def batteryVolts = (rawValue / 10).setScale(2, BigDecimal.ROUND_HALF_UP)
-	def minVolts = 20
-	def maxVolts = 30
-	def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
-	def batteryValue = Math.min(100, pct)
-	if (batteryValue > 0){
-		sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
-		sendEvent("name": "voltage", "value": batteryVolts, "unit": "volts", "displayed": true, isStateChange: true)
-		if (infoLogging) log.info "$device.displayName battery changed to $batteryValue%"
-		if (infoLogging) log.info "$device.displayName voltage changed to $batteryVolts volts"
-	}
-}
-
 def resetMotion() {
 	if (device.currentState('motion')?.value == "active"){
 		sendEvent("name": "motion", "value": "inactive", "unit": "", "displayed": true, isStateChange: true)
@@ -217,11 +180,6 @@ def refresh() {
 	cmd += zigbee.readAttribute(0x0000, 0x0005)
 
 	return cmd
-}
-
-def ping() {
-	if (debugLogging) log.debug "ping()"
-	return zigbee.readAttribute(0x0001, 0x0021)	// battery level
 }
 
 def configure() {
