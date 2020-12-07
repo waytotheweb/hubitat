@@ -84,8 +84,8 @@ def parse(String description) {
 			def rawValue = Integer.parseInt(descMap.value,16)/100
 			def Scale = location.temperatureScale
 			if (Scale == "F") rawValue = (rawValue * 1.8) + 32
-			sendEvent("name": "temperature", "value": rawValue, "unit": "°"+Scale, "displayed": true, isStateChange: true)
-			if (infoLogging) log.info "$device.displayName temperature changed to $rawValue°"+Scale
+			sendEvent("name": "temperature", "value": rawValue, "unit": "&deg;"+Scale, "displayed": true, isStateChange: true)
+			if (infoLogging) log.info "$device.displayName temperature changed to $rawValue&deg;"+Scale
 		}
 		if (descMap.cluster == "0405" && descMap.attrId == "0000") {
 			def rawValue = Integer.parseInt(descMap.value,16)/100
@@ -132,7 +132,7 @@ def parse(String description) {
 				sendEvent("name": "doubleTapped", "value":  button, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "Button $button was double tapped"
 			}
-			if (action == 5) {
+			if (action == 255) {
 				sendEvent("name": "released", "value":  button, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "Button $button was released"
 			}
