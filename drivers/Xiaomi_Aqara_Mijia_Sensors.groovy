@@ -136,6 +136,7 @@ def parse(String description) {
 				sendEvent("name": "released", "value":  button, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "Button $button was released"
 			}
+			runIn(4, resetButton)
 		}
 	}
 }
@@ -145,6 +146,14 @@ def resetMotion() {
 		sendEvent("name": "motion", "value": "inactive", "displayed": true, isStateChange: true)
 		if (infoLogging) log.info "$device.displayName motion changed to inactive"
 	}
+}
+
+def resetButton() {
+	if (debugLogging) log.debug "reset()"
+	sendEvent("name": "held", "value":  "0", "displayed": true, isStateChange: false)
+	sendEvent("name": "pushed", "value":  "0", "displayed": true, isStateChange: false)
+	sendEvent("name": "doubleTapped", "value":  "0", "displayed": true, isStateChange: false)
+	sendEvent("name": "released", "value":  "0", "displayed": true, isStateChange: false)
 }
 
 def resetVibration() {
