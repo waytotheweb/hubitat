@@ -151,10 +151,12 @@ def resetMotion() {
 def resetButton() {
 	unschedule()
 	if (debugLogging) log.debug "reset()"
+/*
 	sendEvent("name": "held", "value":  "", "displayed": true, isStateChange: true)
 	sendEvent("name": "pushed", "value":  "", "displayed": true, isStateChange: true)
 	sendEvent("name": "doubleTapped", "value":  "", "displayed": true, isStateChange: true)
 	sendEvent("name": "released", "value":  "", "displayed": true, isStateChange: true)
+*/
 }
 
 def resetVibration() {
