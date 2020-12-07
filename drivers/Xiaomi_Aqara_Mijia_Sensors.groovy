@@ -65,7 +65,18 @@ def parse(String description) {
 		if (debugLogging) log.debug "cluster:$descMap.cluster, attrId:$descMap.attrId"
 
 		if (descMap.cluster == "0001" && descMap.attrId == "0020") {
-			parseBattery(descMap.value)
+			def rawValue = Integer.parseInt(descMap.value,16)
+			def batteryVolts = (rawValue / 10).setScale(2, BigDecimal.ROUND_HALF_UP)
+			def minVolts = 20
+			def maxVolts = 30
+			def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
+			def batteryValue = Math.min(100, pct)
+			if (batteryValue > 0){
+				sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
+				sendEvent("name": "voltage", "value": batteryVolts, "unit": "volts", "displayed": true, isStateChange: true)
+				if (infoLogging) log.info "$device.displayName battery changed to $batteryValue%"
+				if (infoLogging) log.info "$device.displayName voltage changed to $batteryVolts volts"
+			}
 		}
 		if (descMap.cluster == "0400" && descMap.attrId == "0000") {
 			def rawEncoding = Integer.parseInt(descMap.encoding, 16)
