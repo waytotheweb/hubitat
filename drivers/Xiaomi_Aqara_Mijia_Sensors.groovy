@@ -18,7 +18,6 @@ metadata {
 		capability "PressureMeasurement"
 		capability "AccelerationSensor"
 		capability "MotionSensor"
-		capability "WaterSensor"
 		capability "ContactSensor"
 
 		capability "PushableButton"
@@ -26,6 +25,7 @@ metadata {
 		capability "DoubleTapableButton"
 
 		attribute "voltage", "number"
+		attribute "tilt", "string"
 
 		fingerprint profileId: "0104", inClusters: "0000,0001,0003,0400", outClusters: "0003", manufacturer: "LUMI", model: "lumi.sen_ill.mgl01", deviceJoinName: "Xiaomi Mijia Light Sensor"
 		fingerprint profileId: "0104", inClusters: "0000, 0003, FFFF, 0402, 0403, 0405", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.weather", deviceJoinName: "Xiaomi Aqara Temperature Sensor"
@@ -96,15 +96,24 @@ def parse(String description) {
 			def rawValue = Integer.parseInt(descMap.value,16)
 			def status = "inactive"
 			if (rawValue == 1) status = "active"
-			sendEvent("name": "motion", "value": status,, "displayed": true, isStateChange: true)
+			sendEvent("name": "motion", "value": status, "displayed": true, isStateChange: true)
 			if (infoLogging) log.info "$device.displayName motion changed to $status"
 			unschedule()
 			runIn(65, resetMotion)
 		}
-		if (descMap.cluster == "0101" && (descMap.attrId == "0055" || descMap.attrId == "0508")) {
+		if (descMap.cluster == "0101" && descMap.attrId == "0508") {
 			def status = "active"
-			sendEvent("name": "acceleration", "value": status,, "displayed": true, isStateChange: true)
+			sendEvent("name": "acceleration", "value": status, "displayed": true, isStateChange: true)
+			sendEvent("name": "motion", "value": "active", "displayed": true, isStateChange: true)
 			if (infoLogging) log.info "$device.displayName acceleration changed to $status"
+			unschedule()
+			runIn(65, resetVibration)
+		}
+		if (descMap.cluster == "0101" && descMap.attrId == "0055") {
+			def status = "active"
+			sendEvent("name": "tilt", "value": status, "displayed": true, isStateChange: true)
+			sendEvent("name": "motion", "value": "active", "displayed": true, isStateChange: true)
+			if (infoLogging) log.info "$device.displayName tilt changed to $status"
 			unschedule()
 			runIn(65, resetVibration)
 		}
@@ -163,6 +172,14 @@ def resetVibration() {
 	if (device.currentState('acceleration')?.value == "active"){
 		sendEvent("name": "acceleration", "value": "inactive", "displayed": true, isStateChange: true)
 		if (infoLogging) log.info "$device.displayName acceleration changed to inactive"
+	}
+	if (device.currentState('tilt')?.value != "inactive"){
+		sendEvent("name": "tilt", "value": "inactive", "displayed": true, isStateChange: true)
+		if (infoLogging) log.info "$device.displayName tilt changed to inactive"
+	}
+	if (device.currentState('motion')?.value != "inactive"){
+		sendEvent("name": "motion", "value": "inactive", "displayed": true, isStateChange: true)
+		if (infoLogging) log.info "$device.displayName motion changed to inactive"
 	}
 }
 
