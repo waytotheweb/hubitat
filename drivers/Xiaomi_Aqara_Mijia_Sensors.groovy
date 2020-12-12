@@ -48,17 +48,16 @@ def parse(String description) {
 
 	if (description?.startsWith("read attr -")) {
 		if (description.indexOf('attrId: FF01, encoding: 42') >= 0) {
-			Map mydescMap = (description).split(",").inject([:]) {
-				map, param ->
-				def namevaluePair = param.split(":")
-				map += [(namevaluePair[0].trim()):namevaluePair[1].trim()]
+			def mydescMap = description.split(', ').collectEntries {
+				entry -> def pair = entry.split(': ')
+				[(pair.first()): pair.last()]
 			}
 
 			if (mydescMap.cluster == "0000" && mydescMap.attrId == "FF01") {
 				def MsgLength = mydescMap.value.size()
 				for (int i = 4; i < (MsgLength-3); i+=2) {
 					if (mydescMap.value[i..i+1] == "21" ){
-						batteryEvent(Integer.parseInt(reverseHexString(mydescMap.value[i+2..i+5]) ,16) / 100)
+						batteryEvent(Integer.parseInt(reverseHexString(mydescMap.value[i+2..i+5]), 16) / 100)
 						break
 					}
 				}
