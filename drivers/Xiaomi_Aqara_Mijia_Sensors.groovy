@@ -4,6 +4,7 @@
  */
 
 import hubitat.zigbee.zcl.DataType
+import hubitat.helper.HexUtils
 
 metadata {
 	definition (name: "Xiaomi Aqara Mijia Sensors", namespace: "waytotheweb", author: "Jonathan Michaelson", importUrl: "https://raw.githubusercontent.com/waytotheweb/hubitat/main/drivers/Xiaomi_Aqara_Mijia_Sensors.groovy") {
@@ -44,108 +45,136 @@ metadata {
 
 def parse(String description) {
 	if (debugLogging) log.debug "Incoming data from device : $description"
-	if (description.indexOf('attrId: FF01, encoding: 42') >= 0) return
 
 	if (description?.startsWith("read attr -")) {
-		def descMap = zigbee.parseDescriptionAsMap(description)
-		if (debugLogging) log.debug "cluster:$descMap.cluster, attrId:$descMap.attrId"
+		if (description.indexOf('attrId: FF01, encoding: 42') >= 0) {
+			Map mydescMap = (description).split(",").inject([:]) {
+				map, param ->
+				def namevaluePair = param.split(":")
+				map += [(namevaluePair[0].trim()):namevaluePair[1].trim()]
+			}
+			if (mydescMap.cluster == "0000" && mydescMap.attrId == "FF01") {
+				def MsgLength = mydescMap.value.size()
+				for (int i = 4; i < (MsgLength-3); i+=2) {
+					if (mydescMap.value[i..i+1] == "21" ){
+						def rawValue = Integer.parseInt(reverseHexString(mydescMap.value[i+2..i+5]) ,16) / 100
+						def batteryVolts = (rawValue / 10).setScale(2, BigDecimal.ROUND_HALF_UP)
+						def minVolts = 20
+						def maxVolts = 30
+						def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
+						def batteryValue = Math.min(100, pct)
+						if (batteryValue > 0){
+							sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
+							sendEvent("name": "voltage", "value": batteryVolts, "unit": "volts", "displayed": true, isStateChange: true)
+							if (infoLogging) log.info "$device.displayName battery changed to $batteryValue%"
+							if (infoLogging) log.info "$device.displayName voltage changed to $batteryVolts volts"
+						}
+						break
+					}
+			
+				}
+			}
+		} else {
+			def descMap = zigbee.parseDescriptionAsMap(description)
+			if (debugLogging) log.debug "cluster:$descMap.cluster, attrId:$descMap.attrId"
 
-		if (descMap.cluster == "0001" && descMap.attrId == "0020") {
-			def rawValue = Integer.parseInt(descMap.value,16)
-			def batteryVolts = (rawValue / 10).setScale(2, BigDecimal.ROUND_HALF_UP)
-			def minVolts = 20
-			def maxVolts = 30
-			def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
-			def batteryValue = Math.min(100, pct)
-			if (batteryValue > 0){
-				sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
-				sendEvent("name": "voltage", "value": batteryVolts, "unit": "volts", "displayed": true, isStateChange: true)
-				if (infoLogging) log.info "$device.displayName battery changed to $batteryValue%"
-				if (infoLogging) log.info "$device.displayName voltage changed to $batteryVolts volts"
+			if (descMap.cluster == "0001" && descMap.attrId == "0020") {
+				def rawValue = Integer.parseInt(descMap.value,16)
+				def batteryVolts = (rawValue / 10).setScale(2, BigDecimal.ROUND_HALF_UP)
+				def minVolts = 20
+				def maxVolts = 30
+				def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
+				def batteryValue = Math.min(100, pct)
+				if (batteryValue > 0){
+					sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
+					sendEvent("name": "voltage", "value": batteryVolts, "unit": "volts", "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "$device.displayName battery changed to $batteryValue%"
+					if (infoLogging) log.info "$device.displayName voltage changed to $batteryVolts volts"
+				}
 			}
-		}
-		if (descMap.cluster == "0400" && descMap.attrId == "0000") {
-			def rawEncoding = Integer.parseInt(descMap.encoding, 16)
-			def rawLux = Integer.parseInt(descMap.value,16)
-			if (getDeviceDataByName('model') == "lumi.sensor_motion.aq2") {
-				def rawHex = reverseHexString(descMap.value)
-				rawLux = Integer.parseInt(rawHex,16)
+			if (descMap.cluster == "0400" && descMap.attrId == "0000") {
+				def rawEncoding = Integer.parseInt(descMap.encoding, 16)
+				def rawLux = Integer.parseInt(descMap.value,16)
+				if (getDeviceDataByName('model') == "lumi.sensor_motion.aq2") {
+					def rawHex = reverseHexString(descMap.value)
+					rawLux = Integer.parseInt(rawHex,16)
+				}
+				def lux = rawLux > 0 ? Math.round(Math.pow(10,(rawLux/10000)) - 1) : 0
+				sendEvent("name": "illuminance", "value": lux, "unit": "lux", "displayed": true, isStateChange: true)
+				if (infoLogging) log.info "$device.displayName illuminance changed to $lux"
 			}
-			def lux = rawLux > 0 ? Math.round(Math.pow(10,(rawLux/10000)) - 1) : 0
-			sendEvent("name": "illuminance", "value": lux, "unit": "lux", "displayed": true, isStateChange: true)
-			if (infoLogging) log.info "$device.displayName illuminance changed to $lux"
-		}
-		if (descMap.cluster == "0403" && descMap.attrId == "0000") {
-			def rawValue = Integer.parseInt(descMap.value,16)
-			sendEvent("name": "pressure", "value": rawValue, "unit": "kPa", "displayed": true, isStateChange: true)
-			if (infoLogging) log.info "$device.displayName pressure changed to $rawValue"
-		}
-		if (descMap.cluster == "0402" && descMap.attrId == "0000") {
-			def rawValue = Integer.parseInt(descMap.value,16)/100
-			def Scale = location.temperatureScale
-			if (Scale == "F") rawValue = (rawValue * 1.8) + 32
-			sendEvent("name": "temperature", "value": rawValue, "unit": "&deg;"+Scale, "displayed": true, isStateChange: true)
-			if (infoLogging) log.info "$device.displayName temperature changed to $rawValue&deg;"+Scale
-		}
-		if (descMap.cluster == "0405" && descMap.attrId == "0000") {
-			def rawValue = Integer.parseInt(descMap.value,16)/100
-			sendEvent("name": "humidity", "value": rawValue, "unit": "%", "displayed": true, isStateChange: true)
-			if (infoLogging) log.info "$device.displayName humidity changed to $rawValue"
-		}
-		if (descMap.cluster == "0406" && descMap.attrId == "0000") {
-			def rawValue = Integer.parseInt(descMap.value,16)
-			def status = "inactive"
-			if (rawValue == 1) status = "active"
-			sendEvent("name": "motion", "value": status, "displayed": true, isStateChange: true)
-			if (infoLogging) log.info "$device.displayName motion changed to $status"
-			unschedule()
-			runIn(65, resetMotion)
-		}
-		if (descMap.cluster == "0101" && descMap.attrId == "0508") {
-			def status = "active"
-			sendEvent("name": "acceleration", "value": status, "displayed": true, isStateChange: true)
-			sendEvent("name": "motion", "value": "active", "displayed": true, isStateChange: true)
-			if (infoLogging) log.info "$device.displayName acceleration changed to $status"
-			unschedule()
-			runIn(65, resetVibration)
-		}
-		if (descMap.cluster == "0101" && descMap.attrId == "0055") {
-			def status = "active"
-			sendEvent("name": "tilt", "value": status, "displayed": true, isStateChange: true)
-			sendEvent("name": "motion", "value": "active", "displayed": true, isStateChange: true)
-			if (infoLogging) log.info "$device.displayName tilt changed to $status"
-			unschedule()
-			runIn(65, resetVibration)
-		}
-		if (descMap.cluster == "0006" && descMap.attrId == "0000") {
-			def rawValue = Integer.parseInt(descMap.value,16)
-			def contact = "closed"
-			if (rawValue == 1) contact = "open"
-			sendEvent("name": "contact", "value": contact, "displayed": true, isStateChange: true)
-			if (infoLogging) log.info "$device.displayName contact changed to $contact"
-		}
-		if (descMap.cluster == "0012" && descMap.attrId == "0055") {
-			def button = Integer.parseInt(descMap.endpoint,16) 
-			def action = Integer.parseInt(descMap.value,16)
-			if (debugLogging) log.debug "Button:$button, Action:$action"
+			if (descMap.cluster == "0403" && descMap.attrId == "0000") {
+				def rawValue = Integer.parseInt(descMap.value,16)
+				sendEvent("name": "pressure", "value": rawValue, "unit": "kPa", "displayed": true, isStateChange: true)
+				if (infoLogging) log.info "$device.displayName pressure changed to $rawValue"
+			}
+			if (descMap.cluster == "0402" && descMap.attrId == "0000") {
+				def rawValue = Integer.parseInt(descMap.value,16)/100
+				def Scale = location.temperatureScale
+				if (Scale == "F") rawValue = (rawValue * 1.8) + 32
+				sendEvent("name": "temperature", "value": rawValue, "unit": "&deg;"+Scale, "displayed": true, isStateChange: true)
+				if (infoLogging) log.info "$device.displayName temperature changed to $rawValue&deg;"+Scale
+			}
+			if (descMap.cluster == "0405" && descMap.attrId == "0000") {
+				def rawValue = Integer.parseInt(descMap.value,16)/100
+				sendEvent("name": "humidity", "value": rawValue, "unit": "%", "displayed": true, isStateChange: true)
+				if (infoLogging) log.info "$device.displayName humidity changed to $rawValue"
+			}
+			if (descMap.cluster == "0406" && descMap.attrId == "0000") {
+				def rawValue = Integer.parseInt(descMap.value,16)
+				def status = "inactive"
+				if (rawValue == 1) status = "active"
+				sendEvent("name": "motion", "value": status, "displayed": true, isStateChange: true)
+				if (infoLogging) log.info "$device.displayName motion changed to $status"
+				unschedule()
+				runIn(65, resetMotion)
+			}
+			if (descMap.cluster == "0101" && descMap.attrId == "0508") {
+				def status = "active"
+				sendEvent("name": "acceleration", "value": status, "displayed": true, isStateChange: true)
+				sendEvent("name": "motion", "value": "active", "displayed": true, isStateChange: true)
+				if (infoLogging) log.info "$device.displayName acceleration changed to $status"
+				unschedule()
+				runIn(65, resetVibration)
+			}
+			if (descMap.cluster == "0101" && descMap.attrId == "0055") {
+				def status = "active"
+				sendEvent("name": "tilt", "value": status, "displayed": true, isStateChange: true)
+				sendEvent("name": "motion", "value": "active", "displayed": true, isStateChange: true)
+				if (infoLogging) log.info "$device.displayName tilt changed to $status"
+				unschedule()
+				runIn(65, resetVibration)
+			}
+			if (descMap.cluster == "0006" && descMap.attrId == "0000") {
+				def rawValue = Integer.parseInt(descMap.value,16)
+				def contact = "closed"
+				if (rawValue == 1) contact = "open"
+				sendEvent("name": "contact", "value": contact, "displayed": true, isStateChange: true)
+				if (infoLogging) log.info "$device.displayName contact changed to $contact"
+			}
+			if (descMap.cluster == "0012" && descMap.attrId == "0055") {
+				def button = Integer.parseInt(descMap.endpoint,16) 
+				def action = Integer.parseInt(descMap.value,16)
+				if (debugLogging) log.debug "Button:$button, Action:$action"
 
-			if (action == 0) {
-				sendEvent("name": "held", "value":  button, "displayed": true, isStateChange: true)
-				if (infoLogging) log.info "Button $button was held"
+				if (action == 0) {
+					sendEvent("name": "held", "value":  button, "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "Button $button was held"
+				}
+				if (action == 1) {
+					sendEvent("name": "pushed", "value":  button, "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "Button $button was pushed $action time(s)"
+				}
+				if (action == 2) {
+					sendEvent("name": "doubleTapped", "value":  button, "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "Button $button was double tapped"
+				}
+				if (action == 255) {
+					sendEvent("name": "released", "value":  button, "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "Button $button was released"
+				}
+				runIn(4, resetButton)
 			}
-			if (action == 1) {
-				sendEvent("name": "pushed", "value":  button, "displayed": true, isStateChange: true)
-				if (infoLogging) log.info "Button $button was pushed $action time(s)"
-			}
-			if (action == 2) {
-				sendEvent("name": "doubleTapped", "value":  button, "displayed": true, isStateChange: true)
-				if (infoLogging) log.info "Button $button was double tapped"
-			}
-			if (action == 255) {
-				sendEvent("name": "released", "value":  button, "displayed": true, isStateChange: true)
-				if (infoLogging) log.info "Button $button was released"
-			}
-			runIn(4, resetButton)
 		}
 	}
 }
@@ -185,6 +214,7 @@ def resetVibration() {
 
 def reverseHexString(hexString) {
 	def reversed = ""
+
 	for (int i = hexString.length(); i > 0; i -= 2) {
 		reversed += hexString.substring(i - 2, i )
 	}
