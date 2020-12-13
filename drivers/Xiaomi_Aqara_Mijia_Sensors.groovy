@@ -1,5 +1,12 @@
 /**
- *  Xiaomi Aqara Mijia Sensors
+ *  Xiaomi Aqara Mijia Sensors:
+ *
+ *  Xiaomi Aqara Temperature Sensor		: WSDCGQ11LM
+ *  Xiaomi Aqara Vibration Sensor		: DJT11LM
+ *  Xiaomi Mijia Light Sensor			: GZCGQ01LM
+ *  Xiaomi Aqara Contact Sensor			: MCCGQ11LM
+ *  Xiaomi Aqara Wireless Single Remote Switch	: WXKG03LM
+ *  Xiaomi Aqara Motion Sensor                  : RTCGQ11LM
  *
  */
 
@@ -28,13 +35,13 @@ metadata {
 		attribute "voltage", "number"
 		attribute "tilt", "string"
 
-		fingerprint profileId: "0104", inClusters: "0000,0001,0003,0400", outClusters: "0003", manufacturer: "LUMI", model: "lumi.sen_ill.mgl01", deviceJoinName: "Xiaomi Mijia Light Sensor"
-		fingerprint profileId: "0104", inClusters: "0000, 0003, FFFF, 0402, 0403, 0405", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.weather", deviceJoinName: "Xiaomi Aqara Temperature Sensor"
+		fingerprint profileId: "0104", inClusters: "0000,0400,0003,0001", outClusters: "0003", manufacturer: "LUMI", model: "lumi.sen_ill.mgl01", deviceJoinName: "Xiaomi Mijia Light Sensor"
+		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0402,0403,0405", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.weather", deviceJoinName: "Xiaomi Aqara Temperature Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,FFFF,0406,0400,0500,0001,0003", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.sensor_motion.aq2", deviceJoinName: "Xiaomi Aqara Motion Sensor"
-		fingerprint profileId: "0104", inClusters: "0000,FFFF,0101,0001,0003", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.vibration.aq1", deviceJoinName: "Xiaomi Aqara Vibration Sensor"
-		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0006", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.sensor_magnet.aq2", deviceJoinName: "Xiaomi Aqara Contact Sensor"
-		fingerprint profileId: "0104", inClusters: "0000,0003,0019,FFFF,0012", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.remote.b186acn01", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
-		fingerprint profileId: "0104", inClusters: "0000,0003,0019,FFFF,0012", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.sensor_86sw1", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
+		fingerprint profileId: "0104", inClusters: "0003,0012", outClusters: "0004,0003,0005,0012", manufacturer: "LUMI", model: "lumi.vibration.aq1", deviceJoinName: "Xiaomi Aqara Vibration Sensor"
+		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0006", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.sensor_magnet.aq2", deviceJoinName: "Xiaomi Aqara Contact Sensor"
+		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.remote.b186acn01", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
+		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.sensor_86sw1", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
 
 	}
 	preferences {
@@ -70,7 +77,7 @@ def parse(String description) {
 			if (descMap.cluster == "0001" && descMap.attrId == "0020") {
 				batteryEvent(Integer.parseInt(descMap.value,16))
 			}
-			if (descMap.cluster == "0400" && descMap.attrId == "0000") {
+			else if (descMap.cluster == "0400" && descMap.attrId == "0000") {
 				def rawEncoding = Integer.parseInt(descMap.encoding, 16)
 				def rawLux = Integer.parseInt(descMap.value,16)
 				if (getDeviceDataByName('model') == "lumi.sensor_motion.aq2") {
@@ -81,24 +88,24 @@ def parse(String description) {
 				sendEvent("name": "illuminance", "value": lux, "unit": "lux", "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName illuminance changed to $lux"
 			}
-			if (descMap.cluster == "0403" && descMap.attrId == "0000") {
+			else if (descMap.cluster == "0403" && descMap.attrId == "0000") {
 				def rawValue = Integer.parseInt(descMap.value,16)
 				sendEvent("name": "pressure", "value": rawValue, "unit": "kPa", "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName pressure changed to $rawValue"
 			}
-			if (descMap.cluster == "0402" && descMap.attrId == "0000") {
+			else if (descMap.cluster == "0402" && descMap.attrId == "0000") {
 				def rawValue = Integer.parseInt(descMap.value,16)/100
 				def Scale = location.temperatureScale
 				if (Scale == "F") rawValue = (rawValue * 1.8) + 32
 				sendEvent("name": "temperature", "value": rawValue, "unit": "&deg;"+Scale, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName temperature changed to $rawValue&deg;"+Scale
 			}
-			if (descMap.cluster == "0405" && descMap.attrId == "0000") {
+			else if (descMap.cluster == "0405" && descMap.attrId == "0000") {
 				def rawValue = Integer.parseInt(descMap.value,16)/100
 				sendEvent("name": "humidity", "value": rawValue, "unit": "%", "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName humidity changed to $rawValue"
 			}
-			if (descMap.cluster == "0406" && descMap.attrId == "0000") {
+			else if (descMap.cluster == "0406" && descMap.attrId == "0000") {
 				def rawValue = Integer.parseInt(descMap.value,16)
 				def status = "inactive"
 				if (rawValue == 1) status = "active"
@@ -107,7 +114,7 @@ def parse(String description) {
 				unschedule()
 				runIn(65, resetMotion)
 			}
-			if (descMap.cluster == "0101" && descMap.attrId == "0508") {
+			else if (descMap.cluster == "0101" && descMap.attrId == "0508") {
 				def status = "active"
 				sendEvent("name": "acceleration", "value": status, "displayed": true, isStateChange: true)
 				sendEvent("name": "motion", "value": "active", "displayed": true, isStateChange: true)
@@ -115,7 +122,7 @@ def parse(String description) {
 				unschedule()
 				runIn(65, resetVibration)
 			}
-			if (descMap.cluster == "0101" && descMap.attrId == "0055") {
+			else if (descMap.cluster == "0101" && descMap.attrId == "0055") {
 				def status = "active"
 				sendEvent("name": "tilt", "value": status, "displayed": true, isStateChange: true)
 				sendEvent("name": "motion", "value": "active", "displayed": true, isStateChange: true)
@@ -123,14 +130,14 @@ def parse(String description) {
 				unschedule()
 				runIn(65, resetVibration)
 			}
-			if (descMap.cluster == "0006" && descMap.attrId == "0000") {
+			else if (descMap.cluster == "0006" && descMap.attrId == "0000") {
 				def rawValue = Integer.parseInt(descMap.value,16)
 				def contact = "closed"
 				if (rawValue == 1) contact = "open"
 				sendEvent("name": "contact", "value": contact, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName contact changed to $contact"
 			}
-			if (descMap.cluster == "0012" && descMap.attrId == "0055") {
+			else if (descMap.cluster == "0012" && descMap.attrId == "0055") {
 				def button = Integer.parseInt(descMap.endpoint,16) 
 				def action = Integer.parseInt(descMap.value,16)
 				if (debugLogging) log.debug "Button:$button, Action:$action"
@@ -139,15 +146,15 @@ def parse(String description) {
 					sendEvent("name": "held", "value":  button, "displayed": true, isStateChange: true)
 					if (infoLogging) log.info "Button $button was held"
 				}
-				if (action == 1) {
+				else if (action == 1) {
 					sendEvent("name": "pushed", "value":  button, "displayed": true, isStateChange: true)
 					if (infoLogging) log.info "Button $button was pushed $action time(s)"
 				}
-				if (action == 2) {
+				else if (action == 2) {
 					sendEvent("name": "doubleTapped", "value":  button, "displayed": true, isStateChange: true)
 					if (infoLogging) log.info "Button $button was double tapped"
 				}
-				if (action == 255) {
+				else if (action == 255) {
 					sendEvent("name": "released", "value":  button, "displayed": true, isStateChange: true)
 					if (infoLogging) log.info "Button $button was released"
 				}
