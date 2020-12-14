@@ -240,6 +240,7 @@ def refresh() {
 	cmd += zigbee.readAttribute(0x0001, 0x0020)	// battery
 	cmd += zigbee.readAttribute(0x0000, 0x0004)
 	cmd += zigbee.readAttribute(0x0000, 0x0005)
+	cmd += zigbee.readAttribute(0x0400, 0x0000)	// illuminance
 
 	return cmd
 }
@@ -254,7 +255,11 @@ def configure() {
 		"zdo bind 0x${device.deviceNetworkId} 0x${device.endpointId} 0x01 0x0000 {${device.zigbeeId}} {}",
 		"zdo bind 0x${device.deviceNetworkId} 0x${device.endpointId} 0x01 0x0001 {${device.zigbeeId}} {}",
 		"zdo bind 0x${device.deviceNetworkId} 0x${device.endpointId} 0x01 0x0003 {${device.zigbeeId}} {}",
+		"zdo bind 0x${device.deviceNetworkId} 0x${device.endpointId} 0x01 0x0400 {${device.zigbeeId}} {}",
 	]
+
+	cmd += zigbee.configureReporting(0x0400, 0x0000, 0x21, 10,   3600, 300)
+	cmd += zigbee.configureReporting(0x0001, 0x0020, 0x20, 3600, 3600, 1)
 
 	return cmd
 }
