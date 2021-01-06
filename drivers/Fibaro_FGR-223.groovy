@@ -1,5 +1,5 @@
 /**
- *  Further Hubitat modifications:
+ *  Further Hubitat modifications for Fibaro FGR-223:
  *	. Added Info and Debug Logging preferences
  *	. Tidy code formatting
  *	. Updated fingerprint
