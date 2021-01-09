@@ -1,11 +1,17 @@
 /**
- *  Further Hubitat modifications for Fibaro FGR-223:
+ *  Further Hubitat modifications for Fibaro FGR-223 by Jonathan Michaelson:
  *	. Added Info and Debug Logging preferences
  *	. Tidy code formatting
  *	. Updated fingerprint
+ *	. Fixed Module Parameter preferences
+ *	. Fixed Module Parameter preference persistence
+ *	. Fixed Module Parameter preference display
+ *	. Fixed Module Parameter preference default values
+ *	. Reset Module Parameter preference #150 if set to 2 to avoid repeat calibration
+ *	. Fixed setPosition
  *
  *
- *  Based on the FGR-222 handler by Julien Bachmann, philh30 and changes made by Jonathan Michaelson
+ *  Based on the FGR-222 handler by Julien Bachmann, philh30
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -41,56 +47,46 @@ metadata {
 		command "up"   
 		command "down"   
 
-		fingerprint manufacturer:"010F", deviceType:"0303", inClusters:"0x5E,0x55,0x98,0x9F,0x56,0x6C,0x22", deviceJoinName: "Fibaro Roller Shutter 3"
-
-		preferences {
-			input name: "infoLogging", type: "bool", title: "Enable info message logging", description: ""
-			input name: "debugLogging", type: "bool", title: "Enable debug message logging", description: ""
-		}	
+		fingerprint deviceId: "1000", mfr:"010F", deviceType:"0303", inClusters:"0x5E,0x55,0x98,0x9F,0x56,0x6C,0x22", deviceJoinName: "Fibaro Roller Shutter 3"
 	}
 
 	preferences {
+		input name: "infoLogging", type: "bool", title: "Enable info message logging", description: ""
+		input name: "debugLogging", type: "bool", title: "Enable debug message logging", description: ""
 		input name: "invert", type: "bool", title: "Invert up/down", description: "Invert up and down actions"
 		input name: "openOffset", type: "decimal", title: "Open offset", description: "The percentage from which shutter is displayed as open"
 		input name: "closeOffset", type: "decimal", title: "Close offset", description: "The percentage from which shutter is displayed as closed"
-		input name: "offset", type: "decimal", title: "offset", description: "This offset will correct the value returned by the device so it matches the real value"
+		input name: "offset", type: "decimal", title: "Offset", description: "This offset will correct the value returned by the device so it matches the real value"
 
-		section {
-			input (
-				type: "paragraph",
-				element: "paragraph",
-				title: "DEVICE PARAMETERS:",
-				description: "Device parameters are used to customize the physical device. " +
-							 "Refer to the product documentation for a full description of each parameter."
-			)
+		input (
+			type: "paragraph",
+			element: "paragraph",
+			title: "DEVICE PARAMETERS:",
+			description: "Device parameters are used to customize the physical device. Refer to the product documentation for a full description of each parameter."
+		)
 
-			getParamsMd().findAll( {!it.readonly} ).each { // Exclude readonly parameters.
-
-				def lb = (it.description.length() > 0) ? "\n" : ""
-
-				switch(it.type) {
-					case "number":
-						input (
-							name: "configParam${it.id}",
-							title: "#${it.id}: ${it.name}: \n" + it.description + lb +"Default Value: ${it.defaultValue}",
-							type: it.type,
-							range: it.range,
-							required: it.required
-						)
-						break
-
-					case "enum":
-						input (
-							name: "configParam${it.id}",
-							title: "#${it.id}: ${it.name}: \n" + it.description + lb + "Default Value: ${it.defaultValue}",
-							type: it.type,
-							options: it.options,
-							required: it.required
-						)
-						break
-				}
+		moduleParams().each {
+			if (it.type == "number"){
+				input (
+					name: it.name,
+					type: it.type,
+					title: "#${it.id}: ${it.title}:",
+					description: it.description + " <br>\n[Default Value: " + it.defaultValue + "]",
+					range: it.range,
+					required: it.required
+				)
 			}
-		} // section
+			else if (it.type == "enum"){
+				input (
+					name: it.name,
+					type: it.type,
+					title: "#${it.id}: ${it.title}:",
+					description: it.description + " <br>\n[Default Value: " + it.defaultValue + "]",
+					options: it.options,
+					required: it.required
+				)
+			}
+		}
 	}
 }
 
@@ -107,7 +103,7 @@ def parse(String description) {
 	} else {
 		if (debugLogging) log.debug("Couldn't zwave.parse ${description}")
 	}
-	result
+	return result
 }
 
 def correctLevel(value) {
@@ -160,7 +156,6 @@ def createSwitchEvent(value) {
 
 def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
 	def encapsulatedCommand = cmd.encapsulatedCommand([0x20: 1, 0x26: 3, 0x70: 1, 0x32:3])
-	state.sec = 1
 	if (debugLogging) log.debug "Secure message parsed: ${encapsulatedCommand}"
 	if (encapsulatedCommand) {
 		zwaveEvent(encapsulatedCommand)
@@ -177,7 +172,6 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 			result << response([secure(zwave.meterV2.meterGet(scale: 2))])
 		}
 	}
-	//if (debugLogging) log.debug("Basic result: ${result}")
 	return result
 }
 
@@ -197,7 +191,6 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 			result << createWindowShadeEvent(level) 
 		}
 	}
-	//if (debugLogging) log.debug("switch result ${result}")
 	return result
 }
 
@@ -228,16 +221,16 @@ def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 	if (debugLogging) log.debug("zwaveEvent(): Configuration Report received: ${cmd}")
-	if (cmd.parameterNumber==150) {
-	try {
-		device.updateSetting("configParam150",cmd.scaledConfigurationValue)
-			if (cmd.scaledConfigurationValue==0) if (debugLogging) log.debug "Calibration report received - device not calibrated. Updating parameter ${cmd.parameterNumber} from ${configParam150} to ${cmd.scaledConfigurationValue}."
-			if (cmd.scaledConfigurationValue==1) if (debugLogging) log.debug "Calibration report received - device is calibrated. Updating parameter ${cmd.parameterNumber} from ${configParam150} to ${cmd.scaledConfigurationValue}."
-			if (cmd.scaledConfigurationValue==2) if (debugLogging) log.debug "Calibration report received - device is calibrating. Updating parameter ${cmd.parameterNumber} from ${configParam150} to ${cmd.scaledConfigurationValue}."
+	if (cmd.parameterNumber == 150) {
+		try {
+			device.updateSetting("configParam150", cmd.scaledConfigurationValue)
+			if (cmd.scaledConfigurationValue == 0) if (debugLogging) log.debug "Calibration report received - device not calibrated. Updating parameter ${cmd.parameterNumber} from ${configParam150} to ${cmd.scaledConfigurationValue}."
+			if (cmd.scaledConfigurationValue == 1) if (debugLogging) log.debug "Calibration report received - device is calibrated. Updating parameter ${cmd.parameterNumber} from ${configParam150} to ${cmd.scaledConfigurationValue}."
+			if (cmd.scaledConfigurationValue == 2) if (debugLogging) log.debug "Calibration report received - device is calibrating. Updating parameter ${cmd.parameterNumber} from ${configParam150} to ${cmd.scaledConfigurationValue}."
 		} catch (e) {
-			if (cmd.scaledConfigurationValue==0) if (debugLogging) log.debug "Calibration report received - device not calibrated."
-			if (cmd.scaledConfigurationValue==1) if (debugLogging) log.debug "Calibration report received - device is calibrated."
-			if (cmd.scaledConfigurationValue==2) if (debugLogging) log.debug "Calibration report received - device is calibrating."
+			if (cmd.scaledConfigurationValue == 0) if (debugLogging) log.debug "Calibration report received - device not calibrated."
+			if (cmd.scaledConfigurationValue == 1) if (debugLogging) log.debug "Calibration report received - device is calibrated."
+			if (cmd.scaledConfigurationValue == 2) if (debugLogging) log.debug "Calibration report received - device is calibrating."
 		}
 	}
 }
@@ -304,7 +297,6 @@ def close() {
 
 def privateOpen() {
 	secureSequence([
-		//zwave.basicV1.basicSet(value: 0xFF),
 		zwave.switchMultilevelV3.switchMultilevelSet(value: 99, dimmingDuration: 0x00),
 		zwave.switchMultilevelV3.switchMultilevelGet()
 	], 2000)
@@ -312,7 +304,6 @@ def privateOpen() {
 
 def privateClose() {
 	secureSequence([
-		//zwave.basicV1.basicSet(value: 0),
 		zwave.switchMultilevelV3.switchMultilevelSet(value: 0, dimmingDuration: 0x00),
 		zwave.switchMultilevelV3.switchMultilevelGet()
 	], 2000)
@@ -337,25 +328,11 @@ def refresh() {
 	], 500)
 }
 
-def setLevel(level) {
-	if (invert) {
-		level = 100 - level
-	}
-	if(level > 99) level = 99
-	if (level <= (openOffset ?: 95) && level >= (closeOffset ?: 5)) {
-		level = level - (offset ?: 0)
-	}
-
-	if (infoLogging) log.info("Set level ${level} - Shade state: ${device.currentValue('windowShade')}; Shade level: ${device.currentValue('level')}")
-	secureSequence([
-		//zwave.basicV1.basicSet(value: level),
-		zwave.switchMultilevelV3.switchMultilevelSet(value: level, dimmingDuration: 0x00),
-		zwave.switchMultilevelV3.switchMultilevelGet()
-	], 10000)
+def setPosition(level) {
+	setLevel(level)
 }
 
-def setLevel(String strLevel) {
-	def level = strLevel.toInteger()
+def setLevel(level) {
 	if (invert) {
 		level = 100 - level
 	}
@@ -366,7 +343,6 @@ def setLevel(String strLevel) {
 
 	if (infoLogging) log.info("Set level ${level} s - Shade state: ${device.currentValue('windowShade')}; Shade level: ${device.currentValue('level')}")
 	secureSequence([
-		//zwave.basicV1.basicSet(value: level),
 		zwave.switchMultilevelV3.switchMultilevelSet(value: level, dimmingDuration: 0x00),
 		zwave.switchMultilevelV3.switchMultilevelGet()
 	], 10000)
@@ -386,15 +362,16 @@ def sync() {
 	if (infoLogging) log.info("Sync roller shutter - Shade state: ${device.currentValue('windowShade')}; Shade level: ${device.currentValue('level')}")
 	def cmds = []
 	sendEvent(name: "syncStatus", value: "syncing", isStateChange: true)
-	getParamsMd().findAll( {!it.readonly} ).each { // Exclude readonly parameters.
+	moduleParams().each {
 		if (settings."configParam${it.id}" != null) {
 			cmds << secure(zwave.configurationV1.configurationSet(parameterNumber: it.id, size: it.size, scaledConfigurationValue: settings."configParam${it.id}".toInteger()))
 			cmds << secure(zwave.configurationV1.configurationGet(parameterNumber: it.id))
 		}
+		if (it.id == 150 && configParam150 == 2) device.updateSetting("configParam150", 1)
 	}
-	if(cmds) {
+	if (cmds) {
 		if (debugLogging) log.debug("Send configuration parameters ${cmds}")
-		runIn(0.5 * cmds.size(), setSynced)
+		runIn(cmds.size(), setSynced)
 		delayBetween(cmds, 500)
 	} else {
 		if (debugLogging) log.debug "No configuration parameters set"
@@ -407,10 +384,10 @@ def setSynced() {
 }
 
 private secure(hubitat.zwave.Command cmd) {
-	if (state.sec) {
-		zwave.securityV1.securityMessageEncapsulation().encapsulate(cmd).format()
+	if (getDataValue("zwaveSecurePairingComplete") == "true" && getDataValue("S2") == null) {
+		return zwave.securityV1.securityMessageEncapsulation().encapsulate(cmd).format()
 	} else {
-			cmd.format()
+		return cmd.format()
 	}
 }
 
@@ -418,93 +395,109 @@ private secureSequence(Collection commands, ...delayBetweenArgs) {
 	delayBetween(commands.collect{ secure(it) }, *delayBetweenArgs)
 }
 
-private getParamsMd() {
+private moduleParams() {
 	return [
-	[id:  20, size: 1, type: "number", range: "0..2", defaultValue: 2, required: false, readonly: false,
-		name: "Switch type",
-		description: "This parameter defines how the device should treat the switch connected to the S1 and S2 terminals.\n" +
-		"If parameter 20 is set to 1 (toggle switch), change value of parameter 153 to 0 for slats to work properly.\n" +
-		"0 - momentary switches.\n" +
-		"1 - toggle switches.\n" +
-		"2 - single, momentary switch (the switch should be connected to S1 terminal)." ],
+	[id:  20, size: 1, type: "number", range: "0..2", defaultValue: 0, required: false, readonly: false,
+		name: "configParam20",
+		title: "Switch type",
+		description: "This parameter defines how the device should treat the switch connected to the S1 and S2 terminals.<br>\n" +
+		"If parameter 20 is set to 1 (toggle switch), change value of parameter 153 to 0 for slats to work properly.<br>\n" +
+		"0 - momentary switches.<br>\n" +
+		"1 - toggle switches.<br>\n" +
+		"2 - single, momentary switch (the switch should be connected to S1 terminal)"],
 	[id:  24, size: 1, type: "number", range: "0..1", defaultValue: 0, required: false, readonly: false,
-		name: "Inputs orientation",
-		description: "This parameter allows reversing the operation of switches connected to S1 and S2 without changing the wiring.\n" +
-		"0 - default (S1 - 1st channel, S2 - 2nd channel)\n" +
-		"1 - reversed (S1 - 2nd channel, S2 - 1st channel)\n" ],
+		name: "configParam24",
+		title: "Inputs orientation",
+		description: "This parameter allows reversing the operation of switches connected to S1 and S2 without changing the wiring.<br>\n" +
+		"0 - default (S1 - 1st channel, S2 - 2nd channel)<br>\n" +
+		"1 - reversed (S1 - 2nd channel, S2 - 1st channel)<br>\n"],
 	[id: 25, size:1, type: "number", range: "0..1", defaultValue: 0, required: false, readonly: false,
-		name: "Outputs orientation",
-		description: "This parameter allows reversing the operation of Q1 and Q2 without changing the wiring (in case of invalid motor connection) to ensure proper operation.\n" +
-		"0 - default (Q1 - 1st channel, Q2 - 2nd channel)\n" +
-		"1 - reversed (Q1 - 2nd channel, Q2 - 1st channel)\n" ],
+		name: "configParam25",
+		title: "Outputs orientation",
+		description: "This parameter allows reversing the operation of Q1 and Q2 without changing the wiring (in case of invalid motor connection) to ensure proper operation.<br>\n" +
+		"0 - default (Q1 - 1st channel, Q2 - 2nd channel)<br>\n" +
+		"1 - reversed (Q1 - 2nd channel, Q2 - 1st channel)<br>\n."],
 	[id: 60, size:1, type: "number", range: "0..1", defaultValue: 0, required: false, readonly: false,
-		name: "Measuring power consumed by the device itself",
-		description: "This parameter determines whether the power metering should include the amount of active power consumed by the device itself.\n" +
-		"0 - function inactive\n" +
+		name: "configParam60",
+		title: "Measuring power consumed by the device itself",
+		description: "This parameter determines whether the power metering should include the amount of active power consumed by the device itself.<br>\n" +
+		"0 - function inactive<br>\n" +
 		"1 - function active"],
 	[id: 61, size:2, type: "number", range: "0..500", defaultValue: 15, required: false, readonly: false,
-		name: "Power reports - on change",
-		description: "This parameter determines the minimum change in consumed power that will result in sending new power report to the main controller. For loads under 50W, the parameter is not relevant and reports are sent every 5W change. Power report are sent no often then every 30 seconds.\n" +
-		"0 - reports are disabled\n" +
-		"1-500 -  (1-500%) - change in power"],
+		name: "configParam61",
+		title: "Power reports - on change",
+		description: "This parameter determines the minimum change in consumed power that will result in sending new power report to the main controller. For loads under 50W, the parameter is not relevant and reports are sent every 5W change. Power report are sent no often then every 30 seconds.<br>\n" +
+		"0 - reports are disabled<br>\n" +
+		"1-500 (1-500%) - change in power"],
 	[id: 62, size:2, type: "number", range: "0..32400", defaultValue: 3600, required: false, readonly: false,
-		name: "Power reports - periodic",
-		description: "This parameter determines in what time intervals the periodic power reports are sent to the main controller. Periodic reports do not depend on power change (parameter 61).\n" +
-		"0 - periodic reports are disabled\n" +
+		name: "configParam62",
+		title: "Power reports - periodic",
+		description: "This parameter determines in what time intervals the periodic power reports are sent to the main controller. Periodic reports do not depend on power change (parameter 61).<br>\n" +
+		"0 - periodic reports are disabled<br>\n" +
 		"30-32400 - (30-32400s) - report interval"],
 	[id: 65, size:2, type: "number", range: "0..500", defaultValue: 10, required: false, readonly: false,
-		name: "Energy reports - on change",
-		description: "This parameter determines the minimum change in consumed energy that will result in sending new energy report to the main controller.\n" +
-		"0 - reports are disabled\n" +
-		"1-500 - (0.01 - 5 kWh) - change in energy"],
+		name: "configParam65",
+		title: "Energy reports - on change",
+		description: "This parameter determines the minimum change in consumed energy that will result in sending new energy report to the main controller.<br>\n" +
+		"0 - reports are disabled<br>\n" +
+		"1-500 (0.01 - 5 kWh) - change in energy"],
 	[id: 66, size:2, type: "number", range: "0..32400", defaultValue: 3600, required: false, readonly: false,
-		name: "Energy reports - periodic",
-		description: "This parameter determines in what time intervals the periodic energy reports are sent to the main controller. Periodic reports do not depend on energy change (parameter 65).\n" +
-		"0 - periodic reports are disabled.\n" +
-		"30-32400 - (30-32400s) - report interval"],
+		name: "configParam66",
+		title: "Energy reports - periodic",
+		description: "This parameter determines in what time intervals the periodic energy reports are sent to the main controller. Periodic reports do not depend on energy change (parameter 65).<br>\n" +
+		"0 - periodic reports are disabled.<br>\n" +
+		"30-32400 (30-32400s) - report interval"],
 	[id: 150, size:1, type: "number", range: "0..2", defaultValue: 0, required: false, readonly: false,
-		name: "Force calibration",
-		description: "By setting this parameter to 2 the device enters the calibration mode. The parameter relevant only if the device is set to work in positioning mode (parameter 151 set to 1, 2 or 4).\n" +
-		"0 - device is not calibrated\n" +
-		"1 - device is calibrated\n" +
+		name: "configParam150",
+		title: "Force calibration",
+		description: "By setting this parameter to 2 the device enters the calibration mode. The parameter relevant only if the device is set to work in positioning mode (parameter 151 set to 1, 2 or 4).<br>\n" +
+		"0 - device is not calibrated<br>\n" +
+		"1 - device is calibrated<br>\n" +
 		"2 - force device calibration"],
 	[id: 151, size:1, type: "number", range: "1..6", defaultValue: 1, required: false, readonly: false,
-		name: "Operating mode",
-		description: "This parameter allows adjusting operation according to the connected device\n" +
-		"1 - roller blind (with positioning) \n" +
-		"2 - Venetian blind (with positioning)\n" +
-		"3 - gate (without positioning)\n" +
-		"4 - gate (with positioning)\n" +
-		"5 - roller blind with built-in driver\n" +
+		name: "configParam151",
+		title: "Operating mode",
+		description: "This parameter allows adjusting operation according to the connected device<br>\n" +
+		"1 - roller blind (with positioning) <br>\n" +
+		"2 - Venetian blind (with positioning)<br>\n" +
+		"3 - gate (without positioning)<br>\n" +
+		"4 - gate (with positioning)<br>\n" +
+		"5 - roller blind with built-in driver<br>\n" +
 		"6 - roller blind with built-in driver (impulse)"],
-	[id: 152, size:4, type: "number", range: "0..90000", defaultValue: 150, required: false, readonly: false,
-		name: "Venetian blind - time of full turn of the slats ",
-		description: "For Venetian blinds (parameter 151 set to 2) the parameter determines time of full turn cycle of the slats. For gates (parameter 151 set to 3 or 4) the parameter determines time after which open gate will start closing automatically (if set to 0, gate will not close). The parameter is irrelevant for other modes.\n" +
-		"0-90000 - (0 - 900s, every 0.01s) - time of turn "],
+	[id: 152, size:4, type: "number", range: "0..65535", defaultValue: 150, required: false, readonly: false,
+		name: "configParam152",
+		title: "Venetian blind - time of full turn of the slats ",
+		description: "For Venetian blinds (parameter 151 set to 2) the parameter determines time of full turn cycle of the slats. For gates (parameter 151 set to 3 or 4) the parameter determines time after which open gate will start closing automatically (if set to 0, gate will not close). The parameter is irrelevant for other modes.<br>\n" +
+		"0-65535 (0 - 655.35, every 0.01s) - time of turn"],
 	[id: 153, size:1, type: "number", range: "0..2", defaultValue: 1, required: false, readonly: false,
-		name: "Set slats back to previous position",
-		description: "For Venetian blinds (parameter 151 set to 2) the parameter determines slats positioning in various situations.\n" +
-		"The parameter is irrelevant for other modes.\n" +
-		"If parameter 20 is set to 1 (toggle switch), change value of parameter 153 to 0 for slats to work properly.\n" +
-		"0 - slats return to previously set position only in case of the main controller operation.\n" +
-		"1 - slats return to previously set position in case of the main controller operation, momentary switch operation, or when the limit switch is reached.\n" +
-		"2 - slats return to previously set position in case of the main controller operation, momentary switch operation, when the limit switch is reached or after receiving the Switch Multilevel Stop control frame."],
-	[id: 154, size:2, type: "number", range: "0..600", defaultValue: 10, required: false, readonly: false,
-		name: "Delay motor stop after reaching end switch",
-		description: "For blinds (parameter 151 set to 1, 2, 5 or 6) the parameter determines the time after which the motor will be stopped after end switch contacts are closed. For gates (parameter 151 set to 3 or 4) the parameter determines time after which the gate will start closing automatically if S2 contacts are  opened (if set to 0, gate will not close).\n" +
-		"0-600 - (0 - 60s) - time"],
+		name: "configParam153",
+		title: "Set slats back to previous position",
+		description: "For Venetian blinds (parameter 151 set to 2) the parameter determines slats positioning in various situations.<br>\n" +
+		"The parameter is irrelevant for other modes.<br>\n" +
+		"If parameter 20 is set to 1 (toggle switch), change value of parameter 153 to 0 for slats to work properly.<br>\n" +
+		"0 - slats return to previously set position only in case of the main controller operation.<br>\n" +
+		"1 - slats return to previously set position in case of the main controller operation, momentary switch operation, or when the limit switch is reached.<br>\n" +
+		"2 - slats return to previously set position in case of the main controller operation, momentary switch operation, when the limit switch is reached or after receiving the Switch Multilevel Stop control frame"],
+	[id: 154, size:2, type: "number", range: "0..255", defaultValue: 10, required: false, readonly: false,
+		name: "configParam154",
+		title: "Delay motor stop after reaching end switch",
+		description: "For blinds (parameter 151 set to 1, 2, 5 or 6) the parameter determines the time after which the motor will be stopped after end switch contacts are closed. For gates (parameter 151 set to 3 or 4) the parameter determines time after which the gate will start closing automatically if S2 contacts are  opened (if set to 0, gate will not close).<br>\n" +
+		"0-255 (0 - 25.5s) - time"],
 	[id: 155, size:2, type: "number", range: "0..255", defaultValue: 10, required: false, readonly: false,
-		name: "Motor operation detection",
-		description: "Power threshold to be interpreted as reaching a limit switch.\n" +
-		"0 - reaching a limit switch will not be detected\n" +
-		"1-255 - (1-255W) - report interval"],
-	[id: 156, size:4, type: "number", range: "1..90000", defaultValue: 6000, required: false, readonly: false,
-		name: "Time of up movement",
-		description: "This parameter determines the time needed for roller blinds to reach the top. For modes with positioning value is set automatically during calibration, otherwise it must be set manually.\n" +
-		"1-90000 - (0.01 - 900.00s, every 0.01s) - movement time"],
-	[id: 157, size:4, type: "number", range: "1..90000", defaultValue: 6000, required: false, readonly: false,
-		name: "Time of down movement",
-		description: "This parameter determines time needed for roller blinds to reach the bottom. For modes with positioning value is set automatically during calibration, otherwise it must be set manually.\n" +
-		"1-90000 - (0.01 - 900.00s, every 0.01s) - movement time"]
+		name: "configParam155",
+		title: "Motor operation detection",
+		description: "Power threshold to be interpreted as reaching a limit switch.<br>\n" +
+		"0 - reaching a limit switch will not be detected<br>\n" +
+		"1-255 (1-255W) - report interval"],
+	[id: 156, size:4, type: "number", range: "1..65535", defaultValue: 6000, required: false, readonly: false,
+		name: "configParam156",
+		title: "Time of up movement",
+		description: "This parameter determines the time needed for roller blinds to reach the top. For modes with positioning value is set automatically during calibration, otherwise it must be set manually.<br>\n" +
+		"1-65535 (0.01 - 655.35s, every 0.01s) - movement time"],
+	[id: 157, size:4, type: "number", range: "1..65535", defaultValue: 6000, required: false, readonly: false,
+		name: "configParam157",
+		title: "Time of down movement",
+		description: "This parameter determines time needed for roller blinds to reach the bottom. For modes with positioning value is set automatically during calibration, otherwise it must be set manually.<br>\n" +
+		"1-65535 (0.01 - 655.35s, every 0.01s) - movement time"]
 	]
 }
