@@ -19,6 +19,7 @@
  *
  *  Changelog:
  *
+ *  v0.03 - Fix for spurious voltage calculation from device data
  *  v0.02 - Added state and schedule cleanup to configure command if you move from an old driver
  *  v0.01 - Initial public release
  */
@@ -75,10 +76,12 @@ def parse(String description) {
 
 			if (mydescMap.cluster == "0000" && mydescMap.attrId == "FF01") {
 				def MsgLength = mydescMap.value.size()
-				for (int i = 4; i < (MsgLength-3); i+=2) {
-					if (mydescMap.value[i..i+1] == "21" ){
-						batteryEvent(Integer.parseInt(reverseHexString(mydescMap.value[i+2..i+5]), 16) / 100)
-						break
+				if (MsgLength > 40){
+					for (int i = 4; i < (MsgLength-3); i+=2) {
+						if (mydescMap.value[i..i+1] == "21" ){
+							batteryEvent(Integer.parseInt(reverseHexString(mydescMap.value[i+2..i+5]), 16) / 100)
+							break
+						}
 					}
 				}
 			}
