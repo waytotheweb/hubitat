@@ -19,6 +19,7 @@
  *
  *  Changelog:
  *
+ *  v0.02 - Added state and schedule cleanup to configure command if you move from an old driver
  *  v0.01 - Initial public release
  */
 
@@ -188,6 +189,8 @@ def batteryEvent(rawValue) {
 		if (infoLogging) log.info "$device.displayName battery changed to $batteryValue%"
 		if (infoLogging) log.info "$device.displayName voltage changed to $batteryVolts volts"
 	}
+
+	return
 }
 
 def resetMotion() {
@@ -195,17 +198,15 @@ def resetMotion() {
 		sendEvent("name": "motion", "value": "inactive", "displayed": true, isStateChange: true)
 		if (infoLogging) log.info "$device.displayName motion changed to inactive"
 	}
+
+	return
 }
 
 def resetButton() {
 	unschedule()
 	if (debugLogging) log.debug "reset()"
-/*
-	sendEvent("name": "held", "value":  "", "displayed": true, isStateChange: true)
-	sendEvent("name": "pushed", "value":  "", "displayed": true, isStateChange: true)
-	sendEvent("name": "doubleTapped", "value":  "", "displayed": true, isStateChange: true)
-	sendEvent("name": "released", "value":  "", "displayed": true, isStateChange: true)
-*/
+
+	return
 }
 
 def resetVibration() {
@@ -221,6 +222,8 @@ def resetVibration() {
 		sendEvent("name": "motion", "value": "inactive", "displayed": true, isStateChange: true)
 		if (infoLogging) log.info "$device.displayName motion changed to inactive"
 	}
+
+	return
 }
 
 def reverseHexString(hexString) {
@@ -262,6 +265,9 @@ def configure() {
 	List<String> cmd = []
 
 	if (debugLogging) log.debug "configure()"
+
+	unschedule()
+	state.clear()
 
 	cmd = [
 		"zdo bind 0x${device.deviceNetworkId} 0x${device.endpointId} 0x01 0x0000 {${device.zigbeeId}} {}",
