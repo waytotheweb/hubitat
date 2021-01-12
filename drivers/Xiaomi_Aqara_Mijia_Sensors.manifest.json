@@ -1,0 +1,18 @@
+{
+  "packageName": "Xiaomi Aqara Mijia Sensors",
+  "author": "Jonathan Michaelson",
+  "version": "0.02",
+  "minimumHEVersion": "0.0",
+  "documentationLink": "https://github.com/waytotheweb/hubitat",
+  "communityLink": "https://community.hubitat.com/t/beta-release-xiaomi-aquara-combined-driver/61630",
+  "dateReleased": "2021-01-12",
+  "drivers": [
+    {
+      "id": "78e2689b-12bc-449d-90f5-bb0aa5ec2b95",
+      "name": "Xiaomi Aqara Mijia Sensors",
+      "namespace": "waytotheweb",
+      "location": "https://raw.githubusercontent.com/waytotheweb/hubitat/main/drivers/Xiaomi_Aqara_Mijia_Sensors.groovy",
+      "required": true
+    }
+  ]
+}
