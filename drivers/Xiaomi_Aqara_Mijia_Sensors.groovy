@@ -1,12 +1,13 @@
 /**
  *  Xiaomi Aqara Mijia Sensors:
  *
+ *  Xiaomi Aqara Contact Sensor			: MCCGQ11LM
+ *  Xiaomi Aqara Motion Sensor                  : RTCGQ11LM
  *  Xiaomi Aqara Temperature Sensor		: WSDCGQ11LM
  *  Xiaomi Aqara Vibration Sensor		: DJT11LM
- *  Xiaomi Mijia Light Sensor			: GZCGQ01LM
- *  Xiaomi Aqara Contact Sensor			: MCCGQ11LM
  *  Xiaomi Aqara Wireless Single Remote Switch	: WXKG03LM
- *  Xiaomi Aqara Motion Sensor                  : RTCGQ11LM
+ *  Xiaomi Mijia Human Body Sensor		: RTCGQ01LM
+ *  Xiaomi Mijia Light Sensor			: GZCGQ01LM
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -19,6 +20,8 @@
  *
  *  Changelog:
  *
+ *  v0.05 - Added workaround for Xiaomi data structure oddities (ignoring them for now as they're not used)
+ *          Added fingerprint for RTCGQ01LM
  *  v0.04 - Fixed temperature calculation for negative temps
  *  v0.03 - Fix for spurious voltage calculation from device data
  *  v0.02 - Added state and schedule cleanup to configure command if you move from an old driver
@@ -53,6 +56,7 @@ metadata {
 		fingerprint profileId: "0104", inClusters: "0000,0400,0003,0001", outClusters: "0003", manufacturer: "LUMI", model: "lumi.sen_ill.mgl01", deviceJoinName: "Xiaomi Mijia Light Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0402,0403,0405", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.weather", deviceJoinName: "Xiaomi Aqara Temperature Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,FFFF,0406,0400,0500,0001,0003", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.sensor_motion.aq2", deviceJoinName: "Xiaomi Aqara Motion Sensor"
+		fingerprint profileId: "0104", inClusters: "0000,FFFF,0406,0400,0500,0001,0003", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.sensor_motion", deviceJoinName: "Xiaomi Aqara Motion Sensor"
 		fingerprint profileId: "0104", inClusters: "0003,0012", outClusters: "0004,0003,0005,0012", manufacturer: "LUMI", model: "lumi.vibration.aq1", deviceJoinName: "Xiaomi Aqara Vibration Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0006", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.sensor_magnet.aq2", deviceJoinName: "Xiaomi Aqara Contact Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.remote.b186acn01", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
@@ -86,7 +90,16 @@ def parse(String description) {
 					}
 				}
 			}
-		} else {
+		}
+		else if (description.indexOf('encoding: 42') >= 0) {
+			if (debugLogging) log.debug "Ignoring this data structure: encoding: 42"
+			// not doing anything here yet
+		}
+		else if (description.indexOf('encoding: 4C') >= 0) {
+			if (debugLogging) log.debug "Ignoring this data structure: encoding: 4C"
+			// not doing anything here yet
+		}
+		else {
 			def descMap = zigbee.parseDescriptionAsMap(description)
 
 			if (debugLogging) log.debug "cluster:$descMap.cluster, attrId:$descMap.attrId"
