@@ -19,6 +19,7 @@
  *
  *  Changelog:
  *
+ *  v0.04 - Fixed temperature calculation for negative temps
  *  v0.03 - Fix for spurious voltage calculation from device data
  *  v0.02 - Added state and schedule cleanup to configure command if you move from an old driver
  *  v0.01 - Initial public release
@@ -110,7 +111,7 @@ def parse(String description) {
 				if (infoLogging) log.info "$device.displayName pressure changed to $rawValue"
 			}
 			else if (descMap.cluster == "0402" && descMap.attrId == "0000") {
-				def rawValue = Integer.parseInt(descMap.value,16)/100
+				def rawValue = hexStrToSignedInt(descMap.value) / 100
 				def Scale = location.temperatureScale
 				if (Scale == "F") rawValue = (rawValue * 1.8) + 32
 				sendEvent("name": "temperature", "value": rawValue, "unit": "\u00B0"+Scale, "displayed": true, isStateChange: true)
