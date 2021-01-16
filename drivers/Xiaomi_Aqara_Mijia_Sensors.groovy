@@ -20,6 +20,8 @@
  *
  *  Changelog:
  *
+ *  v0.06 - Added battery level detection for older Xiaomi sensors
+ *          Fixed lux calculation for RTCGQ11LM
  *  v0.05 - Added workaround for Xiaomi data structure oddities (ignoring them for now as they're not used)
  *          Added fingerprint for RTCGQ01LM
  *  v0.04 - Fixed temperature calculation for negative temps
@@ -73,36 +75,31 @@ def parse(String description) {
 	if (debugLogging) log.debug "Incoming data from device : $description"
 
 	if (description?.startsWith("read attr -")) {
-		if (description.indexOf('attrId: FF01, encoding: 42') >= 0) {
-			def mydescMap = description.split(', ').collectEntries {
-				entry -> def pair = entry.split(': ')
-				[(pair.first()): pair.last()]
-			}
-
-			if (mydescMap.cluster == "0000" && mydescMap.attrId == "FF01") {
+		def mydescMap = description.split(', ').collectEntries {
+			entry -> def pair = entry.split(': ')
+			[(pair.first()): pair.last()]
+		}
+		if (mydescMap.attrId == "FF01" || mydescMap.attrId == "FF02") {
+			if (debugLogging) log.debug "Processing Xiaomi data (cluster:$mydescMap.cluster, attrId:$mydescMap.attrId)"
+			if (mydescMap.cluster == "0000") {
 				def MsgLength = mydescMap.value.size()
-				if (MsgLength > 40){
-					for (int i = 4; i < (MsgLength-3); i+=2) {
-						if (mydescMap.value[i..i+1] == "21" ){
-							batteryEvent(Integer.parseInt(reverseHexString(mydescMap.value[i+2..i+5]), 16) / 100)
-							break
-						}
+				if (MsgLength > 20){
+					def batteryVoltage = ""
+					if (mydescMap.attrId == "FF01" && mydescMap.value[4..5] == "21"){
+						batteryVoltage = mydescMap.value[8..9] + mydescMap.value[6..7]
+					}
+					else if (mydescMap.attrId == "FF02" && mydescMap.value[8..9] == "21"){
+						batteryVoltage = mydescMap.value[12..13] + mydescMap.value[10..11]
+					}
+					if (batteryVoltage != ""){
+						batteryEvent(Integer.parseInt(batteryVoltage, 16) / 100)
 					}
 				}
 			}
-		}
-		else if (description.indexOf('encoding: 42') >= 0) {
-			if (debugLogging) log.debug "Ignoring this data structure: encoding: 42"
-			// not doing anything here yet
-		}
-		else if (description.indexOf('encoding: 4C') >= 0) {
-			if (debugLogging) log.debug "Ignoring this data structure: encoding: 4C"
-			// not doing anything here yet
-		}
-		else {
+		} else {
 			def descMap = zigbee.parseDescriptionAsMap(description)
 
-			if (debugLogging) log.debug "cluster:$descMap.cluster, attrId:$descMap.attrId"
+			if (debugLogging) log.debug "Processing Xigbee data (cluster:$descMap.cluster, attrId:$descMap.attrId)"
 
 			if (descMap.cluster == "0001" && descMap.attrId == "0020") {
 				batteryEvent(Integer.parseInt(descMap.value,16))
@@ -110,18 +107,10 @@ def parse(String description) {
 			else if (descMap.cluster == "0400" && descMap.attrId == "0000") {
 				def rawEncoding = Integer.parseInt(descMap.encoding, 16)
 				def rawLux = Integer.parseInt(descMap.value,16)
-				if (getDeviceDataByName('model') == "lumi.sensor_motion.aq2") {
-					def rawHex = reverseHexString(descMap.value)
-					rawLux = Integer.parseInt(rawHex,16)
-				}
 				def lux = rawLux > 0 ? Math.round(Math.pow(10,(rawLux/10000)) - 1) : 0
+				if (getDeviceDataByName('model') == "lumi.sensor_motion.aq2") lux = rawLux
 				sendEvent("name": "illuminance", "value": lux, "unit": "lux", "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName illuminance changed to $lux"
-			}
-			else if (descMap.cluster == "0403" && descMap.attrId == "0000") {
-				def rawValue = Integer.parseInt(descMap.value,16)
-				sendEvent("name": "pressure", "value": rawValue, "unit": "kPa", "displayed": true, isStateChange: true)
-				if (infoLogging) log.info "$device.displayName pressure changed to $rawValue"
 			}
 			else if (descMap.cluster == "0402" && descMap.attrId == "0000") {
 				def rawValue = hexStrToSignedInt(descMap.value) / 100
@@ -129,6 +118,11 @@ def parse(String description) {
 				if (Scale == "F") rawValue = (rawValue * 1.8) + 32
 				sendEvent("name": "temperature", "value": rawValue, "unit": "\u00B0"+Scale, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName temperature changed to $rawValue\u00B0"+Scale
+			}
+			else if (descMap.cluster == "0403" && descMap.attrId == "0000") {
+				def rawValue = Integer.parseInt(descMap.value,16)
+				sendEvent("name": "pressure", "value": rawValue, "unit": "kPa", "displayed": true, isStateChange: true)
+				if (infoLogging) log.info "$device.displayName pressure changed to $rawValue"
 			}
 			else if (descMap.cluster == "0405" && descMap.attrId == "0000") {
 				def rawValue = Integer.parseInt(descMap.value,16)/100
@@ -241,15 +235,6 @@ def resetVibration() {
 	}
 
 	return
-}
-
-def reverseHexString(hexString) {
-	def reversed = ""
-
-	for (int i = hexString.length(); i > 0; i -= 2) {
-		reversed += hexString.substring(i - 2, i )
-	}
-	return reversed
 }
 
 def refresh() {
