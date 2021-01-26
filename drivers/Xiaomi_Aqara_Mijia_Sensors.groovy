@@ -8,6 +8,7 @@
  *  Xiaomi Aqara Wireless Single Remote Switch	: WXKG03LM
  *  Xiaomi Mijia Human Body Sensor		: RTCGQ01LM
  *  Xiaomi Mijia Light Sensor			: GZCGQ01LM
+ *  Xiaomi Mijia Wireless Switch		: WXKG01LM
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -19,6 +20,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Changelog:
+ *
+ *  v0.07 - Added support for WXKG01LM
  *
  *  v0.06 - Added battery level detection for older Xiaomi sensors
  *          Fixed lux calculation for RTCGQ11LM
