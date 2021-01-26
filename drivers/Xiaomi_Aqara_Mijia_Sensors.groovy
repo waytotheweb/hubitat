@@ -63,6 +63,7 @@ metadata {
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0006", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.sensor_magnet.aq2", deviceJoinName: "Xiaomi Aqara Contact Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.remote.b186acn01", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.sensor_86sw1", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
+		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0019", outClusters: "0000,0004,0003,0006,0008,0005,0019", manufacturer: "LUMI", model: "lumi.sensor_switch", deviceJoinName: "Xiaomi Mijia Wireless Switch"
 
 	}
 	preferences {
@@ -157,9 +158,20 @@ def parse(String description) {
 			else if (descMap.cluster == "0006" && descMap.attrId == "0000") {
 				def rawValue = Integer.parseInt(descMap.value,16)
 				def contact = "closed"
-				if (rawValue == 1) contact = "open"
+				def onoff = "off"
+				if (rawValue == 1) {
+					contact = "open"
+					onoff = "on"
+				}
 				sendEvent("name": "contact", "value": contact, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName contact changed to $contact"
+				sendEvent("name": "switch", "value": onoff, "displayed": true, isStateChange: true)
+				if (infoLogging) log.info "$device.displayName switch changed to $onoff"
+			}
+			else if (descMap.cluster == "0006" && descMap.attrId == "8000") {
+				def rawValue = Integer.parseInt(descMap.value,16)
+				sendEvent("name": "pushed", "value":  rawValue, "displayed": true, isStateChange: true)
+				if (infoLogging) log.info "Button was pushed rawValue time(s)"
 			}
 			else if (descMap.cluster == "0012" && descMap.attrId == "0055") {
 				def button = Integer.parseInt(descMap.endpoint,16) 
