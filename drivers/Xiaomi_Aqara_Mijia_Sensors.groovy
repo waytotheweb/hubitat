@@ -158,20 +158,36 @@ def parse(String description) {
 			else if (descMap.cluster == "0006" && descMap.attrId == "0000") {
 				def rawValue = Integer.parseInt(descMap.value,16)
 				def contact = "closed"
-				def onoff = "off"
-				if (rawValue == 1) {
-					contact = "open"
-					onoff = "on"
-				}
+				if (rawValue == 1) contact = "open"
 				sendEvent("name": "contact", "value": contact, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName contact changed to $contact"
-				sendEvent("name": "switch", "value": onoff, "displayed": true, isStateChange: true)
-				if (infoLogging) log.info "$device.displayName switch changed to $onoff"
+				if (device.hasCapability("PushableButton")){
+					if (rawValue == 0){
+						sendEvent("name": "pushed", "value": 1, "displayed": true, isStateChange: true)
+						if (infoLogging) log.info "$device.displayName pushed"
+						if (device.hasCapability("HoldableButton")){
+							runIn(3, deviceHeld)
+							state.held = false
+						}
+					} else {
+						if (device.hasCapability("HoldableButton")){
+							if (state.held == true){
+								state.held = false
+								unschedule()
+								sendEvent("name": "released", "value":  1, "displayed": true, isStateChange: true)
+								if (infoLogging) log.info "$device.displayName released"
+							} else {
+								unschedule()
+							}
+						}
+					}
+				}
 			}
 			else if (descMap.cluster == "0006" && descMap.attrId == "8000") {
 				def rawValue = Integer.parseInt(descMap.value,16)
+				if (rawValue > 4) rawValue = 4
 				sendEvent("name": "pushed", "value":  rawValue, "displayed": true, isStateChange: true)
-				if (infoLogging) log.info "Button was pushed rawValue time(s)"
+				if (infoLogging) log.info "$device.displayName pushed $rawValue time(s)"
 			}
 			else if (descMap.cluster == "0012" && descMap.attrId == "0055") {
 				def button = Integer.parseInt(descMap.endpoint,16) 
@@ -197,6 +213,15 @@ def parse(String description) {
 				runIn(4, resetButton)
 			}
 		}
+	}
+}
+
+
+def deviceHeld() {
+	if (state.held == false){
+		state.held = true
+		sendEvent("name": "held", "value":  1, "displayed": true, isStateChange: true)
+		if (infoLogging) log.info "$device.displayName held"
 	}
 }
 
