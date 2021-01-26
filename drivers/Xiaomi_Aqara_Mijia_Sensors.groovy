@@ -54,6 +54,8 @@ metadata {
 
 		attribute "voltage", "number"
 		attribute "tilt", "string"
+		attribute "taps", "number"
+		attribute "released", "number"
 
 		fingerprint profileId: "0104", inClusters: "0000,0400,0003,0001", outClusters: "0003", manufacturer: "LUMI", model: "lumi.sen_ill.mgl01", deviceJoinName: "Xiaomi Mijia Light Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0402,0403,0405", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.weather", deviceJoinName: "Xiaomi Aqara Temperature Sensor"
@@ -164,6 +166,7 @@ def parse(String description) {
 				if (device.hasCapability("PushableButton")){
 					if (rawValue == 0){
 						sendEvent("name": "pushed", "value": 1, "displayed": true, isStateChange: true)
+						sendEvent("name": "taps", "value": 1, "displayed": true, isStateChange: true)
 						if (infoLogging) log.info "$device.displayName pushed"
 						if (device.hasCapability("HoldableButton")){
 							runIn(3, deviceHeld)
@@ -186,7 +189,12 @@ def parse(String description) {
 			else if (descMap.cluster == "0006" && descMap.attrId == "8000") {
 				def rawValue = Integer.parseInt(descMap.value,16)
 				if (rawValue > 4) rawValue = 4
-				sendEvent("name": "pushed", "value":  rawValue, "displayed": true, isStateChange: true)
+				sendEvent("name": "pushed", "value":  1, "displayed": true, isStateChange: true)
+				sendEvent("name": "taps", "value":  rawValue, "displayed": true, isStateChange: true)
+				if (rawValue == 2){
+					sendEvent("name": "doubleTapped", "value":  1, "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "Button $button was doubleTapped"
+				}
 				if (infoLogging) log.info "$device.displayName pushed $rawValue time(s)"
 			}
 			else if (descMap.cluster == "0012" && descMap.attrId == "0055") {
