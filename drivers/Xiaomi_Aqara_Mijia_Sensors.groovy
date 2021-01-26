@@ -51,6 +51,7 @@ metadata {
 		capability "PushableButton"
 		capability "HoldableButton"
 		capability "DoubleTapableButton"
+		capability "ReleasableButton"
 
 		attribute "voltage", "number"
 		attribute "tilt", "string"
@@ -173,7 +174,7 @@ def parse(String description) {
 							state.held = false
 						}
 					} else {
-						if (device.hasCapability("HoldableButton")){
+						if (device.hasCapability("ReleasableButton")){
 							if (state.held == true){
 								state.held = false
 								unschedule()
