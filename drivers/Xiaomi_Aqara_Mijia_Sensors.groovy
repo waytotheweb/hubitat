@@ -9,6 +9,7 @@
  *  Xiaomi Mijia Human Body Sensor		: RTCGQ01LM
  *  Xiaomi Mijia Light Sensor			: GZCGQ01LM
  *  Xiaomi Mijia Wireless Switch		: WXKG01LM
+ *  Xiaomi Aqara Wireless Mini Switch		: WXKG12LM
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -22,6 +23,7 @@
  *  Changelog:
  *
  *  v0.07 - Added support for WXKG01LM
+ *          Added support for WXKG12LM
  *
  *  v0.06 - Added battery level detection for older Xiaomi sensors
  *          Fixed lux calculation for RTCGQ11LM
@@ -60,6 +62,7 @@ metadata {
 		attribute "tilt", "string"
 		attribute "taps", "number"
 		attribute "released", "number"
+		attribute "shaken", "number"
 
 		fingerprint profileId: "0104", inClusters: "0000,0400,0003,0001", outClusters: "0003", manufacturer: "LUMI", model: "lumi.sen_ill.mgl01", deviceJoinName: "Xiaomi Mijia Light Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0402,0403,0405", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.weather", deviceJoinName: "Xiaomi Aqara Temperature Sensor"
@@ -70,12 +73,14 @@ metadata {
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.remote.b186acn01", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.sensor_86sw1", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0019", outClusters: "0000,0004,0003,0006,0008,0005,0019", manufacturer: "LUMI", model: "lumi.sensor_switch", deviceJoinName: "Xiaomi Mijia Wireless Switch"
+		fingerprint profileId: "0104", inClusters: "0000,0012,0006,0001", outClusters: "0000", manufacturer: "LUMI", model: "lumi.sensor_swit", deviceJoinName: "Aqara Wireless Mini Switch"
 
 	}
 	preferences {
-		input name: "infoLogging", type: "bool", title: "Enable info message logging", description: ""
-		input name: "debugLogging", type: "bool", title: "Enable debug message logging", description: ""
-	}    
+		input name: "infoLogging", type: "bool", title: "Enable info message logging", description: "", defaultValue: true
+		input name: "debugLogging", type: "bool", title: "Enable debug message logging", description: "", defaultValue: false
+		input name: "holdDuration", type: "number", title: "Button hold duration", description: "How long in seconds the button needs to be pushed to be in a held state.<br>\n(WXKG01LM Wireless Switch ONLY)", defaultValue: "1", range: "1..10"
+	}
 }
 
 def parse(String description) {
@@ -167,13 +172,13 @@ def parse(String description) {
 				if (rawValue == 1) contact = "open"
 				sendEvent("name": "contact", "value": contact, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName contact changed to $contact"
-				if (device.hasCapability("PushableButton")){
+				if (device.hasCapability("PushableButton") && getDeviceDataByName('model') == "lumi.sensor_switch"){
 					if (rawValue == 0){
 						sendEvent("name": "pushed", "value": 1, "displayed": true, isStateChange: true)
 						sendEvent("name": "taps", "value": 1, "displayed": true, isStateChange: true)
 						if (infoLogging) log.info "$device.displayName pushed"
 						if (device.hasCapability("HoldableButton")){
-							runIn(3, deviceHeld)
+							runIn(holdDuration, deviceHeld)
 							state.held = false
 						}
 					} else {
@@ -190,7 +195,7 @@ def parse(String description) {
 					}
 				}
 			}
-			else if (descMap.cluster == "0006" && descMap.attrId == "8000") {
+			else if (descMap.cluster == "0006" && descMap.attrId == "8000" && getDeviceDataByName('model') == "lumi.sensor_switch") {
 				def rawValue = Integer.parseInt(descMap.value,16)
 				if (rawValue > 4) rawValue = 4
 				sendEvent("name": "pushed", "value":  1, "displayed": true, isStateChange: true)
@@ -218,6 +223,18 @@ def parse(String description) {
 					sendEvent("name": "doubleTapped", "value":  button, "displayed": true, isStateChange: true)
 					if (infoLogging) log.info "Button $button was double tapped"
 				}
+				else if (action == 16) {
+					sendEvent("name": "held", "value":  button, "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "Button $button was held"
+				}
+				else if (action == 17) {
+					sendEvent("name": "released", "value":  button, "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "Button $button was released"
+				}
+				else if (action == 18) {
+					sendEvent("name": "shaken", "value":  button, "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "Button $button was shaken"
+				}
 				else if (action == 255) {
 					sendEvent("name": "released", "value":  button, "displayed": true, isStateChange: true)
 					if (infoLogging) log.info "Button $button was released"
@@ -233,7 +250,7 @@ def deviceHeld() {
 	if (state.held == false){
 		state.held = true
 		sendEvent("name": "held", "value":  1, "displayed": true, isStateChange: true)
-		if (infoLogging) log.info "$device.displayName held"
+		if (infoLogging) log.info "$device.displayName held for at least $holdDuration seconds"
 	}
 }
 
