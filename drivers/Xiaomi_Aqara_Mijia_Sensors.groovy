@@ -10,6 +10,7 @@
  *  Xiaomi Mijia Light Sensor			: GZCGQ01LM
  *  Xiaomi Mijia Wireless Switch		: WXKG01LM
  *  Xiaomi Aqara Wireless Mini Switch		: WXKG12LM
+ *  Xiaomi Aqara Water Leak Sensor		: SJCGQ11LM
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -24,6 +25,7 @@
  *
  *  v0.07 - Added support for WXKG01LM
  *          Added support for WXKG12LM
+ *          Added support for SJCGQ11LM
  *
  *  v0.06 - Added battery level detection for older Xiaomi sensors
  *          Fixed lux calculation for RTCGQ11LM
@@ -52,6 +54,7 @@ metadata {
 		capability "AccelerationSensor"
 		capability "MotionSensor"
 		capability "ContactSensor"
+		capability "WaterSensor"
 
 		capability "PushableButton"
 		capability "HoldableButton"
@@ -74,6 +77,7 @@ metadata {
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.sensor_86sw1", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0019", outClusters: "0000,0004,0003,0006,0008,0005,0019", manufacturer: "LUMI", model: "lumi.sensor_switch", deviceJoinName: "Xiaomi Mijia Wireless Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0012,0006,0001", outClusters: "0000", manufacturer: "LUMI", model: "lumi.sensor_swit", deviceJoinName: "Aqara Wireless Mini Switch"
+		fingerprint profileId: "0104", inClusters: "0000,0003,0001", outClusters: "0019", manufacturer: "LUMI", model: "lumi.sensor_wleak.aq1", deviceJoinName: "Aqara Water Leak Sensor"
 
 	}
 	preferences {
@@ -86,6 +90,16 @@ metadata {
 def parse(String description) {
 	if (debugLogging) log.debug "Incoming data from device : $description"
 
+	if (description?.startsWith("zone status ")) {
+		if (description?.startsWith("zone status 0x0001")){
+			sendEvent("name": "water", "value": "wet", "displayed": true, isStateChange: true)
+			if (infoLogging) log.info "$device.displayName water changed to wet"
+		}
+		else if (description?.startsWith("zone status 0x0000")){
+			sendEvent("name": "water", "value": "dry", "displayed": true, isStateChange: true)
+			if (infoLogging) log.info "$device.displayName water changed to dry"
+		}
+	}
 	if (description?.startsWith("read attr -")) {
 		def mydescMap = description.split(', ').collectEntries {
 			entry -> def pair = entry.split(': ')
@@ -103,6 +117,19 @@ def parse(String description) {
 					else if (mydescMap.attrId == "FF02" && mydescMap.value[8..9] == "21"){
 						batteryVoltage = mydescMap.value[12..13] + mydescMap.value[10..11]
 					}
+					if (batteryVoltage != ""){
+						batteryEvent(Integer.parseInt(batteryVoltage, 16) / 100)
+					}
+				}
+			}
+		
+		}
+		else if (mydescMap.cluster == "0000" && mydescMap.attrId == "0005" &&  mydescMap.encoding == "42"){
+			if (debugLogging) log.debug "Processing Xiaomi data (cluster:$mydescMap.cluster, attrId:$mydescMap.attrId, encoding:$mydescMap.encoding)"
+			if (mydescMap.value.size() > 60){
+				def batteryData = mydescMap.value.split('FF42')[1]
+				if (batteryData[4..5] == "21"){
+					batteryVoltage = batteryData[8..9] + batteryData[6..7]
 					if (batteryVoltage != ""){
 						batteryEvent(Integer.parseInt(batteryVoltage, 16) / 100)
 					}
