@@ -1,5 +1,5 @@
 /**
- *  Xiaomi Aqara Mijia Sensors:
+ *  Xiaomi Aqara Mijia Sensors and Switches:
  *
  *  Xiaomi Aqara Contact Sensor			: MCCGQ11LM
  *  Xiaomi Aqara Motion Sensor                  : RTCGQ11LM
@@ -26,14 +26,21 @@
  *  v0.07 - Added support for WXKG01LM
  *          Added support for WXKG12LM
  *          Added support for SJCGQ11LM
+ *          Removed unnecessary button scheduled reset
+ *          Standardised the info logging text
  *
  *  v0.06 - Added battery level detection for older Xiaomi sensors
  *          Fixed lux calculation for RTCGQ11LM
- *  v0.05 - Added workaround for Xiaomi data structure oddities (ignoring them for now as they're not used)
+ *
+ *  v0.05 - Added workaround for Xiaomi data structure oddities
  *          Added fingerprint for RTCGQ01LM
+ *
  *  v0.04 - Fixed temperature calculation for negative temps
+ *
  *  v0.03 - Fix for spurious voltage calculation from device data
+ *
  *  v0.02 - Added state and schedule cleanup to configure command if you move from an old driver
+ *
  *  v0.01 - Initial public release
  */
 
@@ -229,44 +236,43 @@ def parse(String description) {
 				sendEvent("name": "taps", "value":  rawValue, "displayed": true, isStateChange: true)
 				if (rawValue == 2){
 					sendEvent("name": "doubleTapped", "value":  1, "displayed": true, isStateChange: true)
-					if (infoLogging) log.info "Button $button was doubleTapped"
+					if (infoLogging) log.info "$device.displayName button $button was doubleTapped"
 				}
 				if (infoLogging) log.info "$device.displayName pushed $rawValue time(s)"
 			}
 			else if (descMap.cluster == "0012" && descMap.attrId == "0055") {
 				def button = Integer.parseInt(descMap.endpoint,16) 
 				def action = Integer.parseInt(descMap.value,16)
-				if (debugLogging) log.debug "Button:$button, Action:$action"
+				if (debugLogging) log.debug "$device.displayName Button:$button, Action:$action"
 
 				if (action == 0) {
 					sendEvent("name": "held", "value":  button, "displayed": true, isStateChange: true)
-					if (infoLogging) log.info "Button $button was held"
+					if (infoLogging) log.info "$device.displayName button $button was held"
 				}
 				else if (action == 1) {
 					sendEvent("name": "pushed", "value":  button, "displayed": true, isStateChange: true)
-					if (infoLogging) log.info "Button $button was pushed $action time(s)"
+					if (infoLogging) log.info "$device.displayName button $button was pushed $action time(s)"
 				}
 				else if (action == 2) {
 					sendEvent("name": "doubleTapped", "value":  button, "displayed": true, isStateChange: true)
-					if (infoLogging) log.info "Button $button was double tapped"
+					if (infoLogging) log.info "$device.displayName button $button was double tapped"
 				}
 				else if (action == 16) {
 					sendEvent("name": "held", "value":  button, "displayed": true, isStateChange: true)
-					if (infoLogging) log.info "Button $button was held"
+					if (infoLogging) log.info "$device.displayName button $button was held"
 				}
 				else if (action == 17) {
 					sendEvent("name": "released", "value":  button, "displayed": true, isStateChange: true)
-					if (infoLogging) log.info "Button $button was released"
+					if (infoLogging) log.info "$device.displayName button $button was released"
 				}
 				else if (action == 18) {
 					sendEvent("name": "shaken", "value":  button, "displayed": true, isStateChange: true)
-					if (infoLogging) log.info "Button $button was shaken"
+					if (infoLogging) log.info "$device.displayName button $button was shaken"
 				}
 				else if (action == 255) {
 					sendEvent("name": "released", "value":  button, "displayed": true, isStateChange: true)
-					if (infoLogging) log.info "Button $button was released"
+					if (infoLogging) log.info "$device.displayName button $button was released"
 				}
-				runIn(4, resetButton)
 			}
 		}
 	}
@@ -302,13 +308,6 @@ def resetMotion() {
 		sendEvent("name": "motion", "value": "inactive", "displayed": true, isStateChange: true)
 		if (infoLogging) log.info "$device.displayName motion changed to inactive"
 	}
-
-	return
-}
-
-def resetButton() {
-	unschedule()
-	if (debugLogging) log.debug "reset()"
 
 	return
 }
