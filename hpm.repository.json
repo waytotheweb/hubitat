@@ -4,10 +4,10 @@
   "packages": [
     {
       "id": "d067c762-7275-4bee-8352-9a844372006e",
-      "name": "Xiaomi Aqara Mijia Sensors",
+      "name": "Xiaomi Aqara Mijia Sensors and Switches",
       "category": "Control",
       "location": "https://raw.githubusercontent.com/waytotheweb/hubitat/main/drivers/Xiaomi_Aqara_Mijia_Sensors.manifest.json",
-      "description": "Xiaomi Aqara Mijia Sensors Driver",
+      "description": "Xiaomi Aqara Mijia Sensors and Switches Combined Driver",
       "tags": [
         "Multi Sensors"
       ]

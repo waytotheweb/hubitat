@@ -48,7 +48,7 @@ import hubitat.zigbee.zcl.DataType
 import hubitat.helper.HexUtils
 
 metadata {
-	definition (name: "Xiaomi Aqara Mijia Sensors", namespace: "waytotheweb", author: "Jonathan Michaelson", importUrl: "https://raw.githubusercontent.com/waytotheweb/hubitat/main/drivers/Xiaomi_Aqara_Mijia_Sensors.groovy") {
+	definition (name: "Xiaomi Aqara Mijia Sensors and Switches", namespace: "waytotheweb", author: "Jonathan Michaelson", importUrl: "https://raw.githubusercontent.com/waytotheweb/hubitat/main/drivers/Xiaomi_Aqara_Mijia_Sensors.groovy") {
 		capability "Battery"
 		capability "Sensor"
 		capability "Refresh"
