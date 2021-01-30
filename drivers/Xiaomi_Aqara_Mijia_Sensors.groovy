@@ -23,6 +23,8 @@
  *
  *  Changelog:
  *
+ *  v0.08 - Added simple presence tracking that keeps track of the devices presence and will change state if no updates in 3 hours
+ *
  *  v0.07 - Added support for WXKG01LM
  *          Added support for WXKG12LM
  *          Added support for SJCGQ11LM
@@ -53,6 +55,7 @@ metadata {
 		capability "Sensor"
 		capability "Refresh"
 		capability "Configuration"
+		capability "PresenceSensor"
 
 		capability "IlluminanceMeasurement"
 		capability "RelativeHumidityMeasurement"
@@ -90,7 +93,8 @@ metadata {
 	preferences {
 		input name: "infoLogging", type: "bool", title: "Enable info message logging", description: "", defaultValue: true
 		input name: "debugLogging", type: "bool", title: "Enable debug message logging", description: "", defaultValue: false
-		input name: "holdDuration", type: "number", title: "Button hold duration", description: "How long in seconds the button needs to be pushed to be in a held state.<br>\n(WXKG01LM Wireless Switch ONLY)", defaultValue: "1", range: "1..10"
+		input name: "presenceDetect", type: "bool", title: "Enable presence detection", description: "This will keep track of the devices presence and will change state if no updates in 3 hours", defaultValue: false
+		input name: "holdDuration", type: "number", title: "Button hold duration", description: "How long in seconds (1 to 10) the button needs to be pushed to be in a held state.<br>\n(WXKG01LM Wireless Switch ONLY)", defaultValue: "1", range: "1..10"
 	}
 }
 
@@ -181,7 +185,7 @@ def parse(String description) {
 				if (rawValue == 1) status = "active"
 				sendEvent("name": "motion", "value": status, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName motion changed to $status"
-				unschedule()
+				unschedule(resetMotion)
 				runIn(65, resetMotion)
 			}
 			else if (descMap.cluster == "0101" && descMap.attrId == "0508") {
@@ -189,7 +193,7 @@ def parse(String description) {
 				sendEvent("name": "acceleration", "value": status, "displayed": true, isStateChange: true)
 				sendEvent("name": "motion", "value": "active", "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName acceleration changed to $status"
-				unschedule()
+				unschedule(resetVibration)
 				runIn(65, resetVibration)
 			}
 			else if (descMap.cluster == "0101" && descMap.attrId == "0055") {
@@ -197,7 +201,7 @@ def parse(String description) {
 				sendEvent("name": "tilt", "value": status, "displayed": true, isStateChange: true)
 				sendEvent("name": "motion", "value": "active", "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName tilt changed to $status"
-				unschedule()
+				unschedule(resetVibration)
 				runIn(65, resetVibration)
 			}
 			else if (descMap.cluster == "0006" && descMap.attrId == "0000") {
@@ -219,11 +223,11 @@ def parse(String description) {
 						if (device.hasCapability("ReleasableButton")){
 							if (state.held == true){
 								state.held = false
-								unschedule()
+								unschedule(deviceHeld)
 								sendEvent("name": "released", "value":  1, "displayed": true, isStateChange: true)
 								if (infoLogging) log.info "$device.displayName released"
 							} else {
-								unschedule()
+								unschedule(deviceHeld)
 							}
 						}
 					}
@@ -276,8 +280,30 @@ def parse(String description) {
 			}
 		}
 	}
+	if (presenceDetect){
+		unschedule(presenceTracker)
+		sendEvent("name": "presence", "value":  "present", "displayed": true, isStateChange: true)
+		if (debugLogging) log.info "$device.displayName present"
+		runIn(10800, "presenceTracker");
+	}
 }
 
+def updated() {
+	if (debugLogging) log.debug "updated()"
+	if (presenceDetect){
+		unschedule(presenceTracker)
+		sendEvent("name": "presence", "value":  "present", "displayed": true, isStateChange: true)
+		if (debugLogging) log.info "$device.displayName present"
+		runIn(10800, "presenceTracker");
+	} else {
+		unschedule(presenceTracker)
+	}
+}
+
+def presenceTracker() {
+	sendEvent("name": "presence", "value":  "not present", "displayed": true, isStateChange: true)
+	if (infoLogging) log.info "$device.displayName not present"
+}
 
 def deviceHeld() {
 	if (state.held == false){
@@ -334,11 +360,11 @@ def refresh() {
 
 	if (debugLogging) log.debug "refresh()"
 	if (device.currentState('motion')?.value == "active"){
-		unschedule()
+		unschedule(resetMotion)
 		resetMotion()
 	}
 	if (device.currentState('acceleration')?.value == "active"){
-		unschedule()
+		unschedule(resetVibration)
 		resetVibration()
 	}
 
