@@ -23,7 +23,7 @@
  *
  *  Changelog:
  *
- *  v0.08 - Added simple presence tracking that keeps track of the devices presence and will change state if no updates in 3 hours
+ *  v0.08 - Added simple presence tracking that checks the devices presence and will change state if no updates in 3 hours
  *
  *  v0.07 - Added support for WXKG01LM
  *          Added support for WXKG12LM
@@ -93,7 +93,7 @@ metadata {
 	preferences {
 		input name: "infoLogging", type: "bool", title: "Enable info message logging", description: "", defaultValue: true
 		input name: "debugLogging", type: "bool", title: "Enable debug message logging", description: "", defaultValue: false
-		input name: "presenceDetect", type: "bool", title: "Enable presence detection", description: "This will keep track of the devices presence and will change state if no updates in 3 hours", defaultValue: false
+		input name: "presenceDetect", type: "bool", title: "Enable presence detection", description: "This will keep track of the devices presence and will change state if no updates in 3 hours. If it does lose presence try pushing the reset button on the device if present.", defaultValue: true
 		input name: "holdDuration", type: "number", title: "Button hold duration", description: "How long in seconds (1 to 10) the button needs to be pushed to be in a held state.<br>\n(WXKG01LM Wireless Switch ONLY)", defaultValue: "1", range: "1..10"
 	}
 }
@@ -290,14 +290,6 @@ def parse(String description) {
 
 def updated() {
 	if (debugLogging) log.debug "updated()"
-	if (presenceDetect){
-		unschedule(presenceTracker)
-		sendEvent("name": "presence", "value":  "present", "displayed": true, isStateChange: true)
-		if (debugLogging) log.info "$device.displayName present"
-		runIn(10800, "presenceTracker");
-	} else {
-		unschedule(presenceTracker)
-	}
 }
 
 def presenceTracker() {
