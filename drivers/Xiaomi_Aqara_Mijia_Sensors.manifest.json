@@ -1,7 +1,7 @@
 {
   "packageName": "Xiaomi Aqara Mijia Sensors and Switches",
   "author": "Jonathan Michaelson",
-  "version": "0.07",
+  "version": "0.08",
   "minimumHEVersion": "0.0",
   "documentationLink": "https://github.com/waytotheweb/hubitat",
   "communityLink": "https://community.hubitat.com/t/beta-release-xiaomi-aquara-combined-driver/61630",

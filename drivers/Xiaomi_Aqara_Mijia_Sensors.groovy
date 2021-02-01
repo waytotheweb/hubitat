@@ -5,12 +5,13 @@
  *  Xiaomi Aqara Motion Sensor                  : RTCGQ11LM
  *  Xiaomi Aqara Temperature Sensor		: WSDCGQ11LM
  *  Xiaomi Aqara Vibration Sensor		: DJT11LM
+ *  Xiaomi Aqara Water Leak Sensor		: SJCGQ11LM
+ *  Xiaomi Aqara Wireless Mini Switch		: WXKG12LM
  *  Xiaomi Aqara Wireless Single Remote Switch	: WXKG03LM
+ *  Xiaomi Mijia Door and Window Sensor		: MCCGQ01LM
  *  Xiaomi Mijia Human Body Sensor		: RTCGQ01LM
  *  Xiaomi Mijia Light Sensor			: GZCGQ01LM
  *  Xiaomi Mijia Wireless Switch		: WXKG01LM
- *  Xiaomi Aqara Wireless Mini Switch		: WXKG12LM
- *  Xiaomi Aqara Water Leak Sensor		: SJCGQ11LM
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -23,7 +24,10 @@
  *
  *  Changelog:
  *
- *  v0.08 - Added simple presence tracking that checks the devices presence and will change state if no updates in 3 hours
+ *  v0.08 - Added simple presence tracking that checks the devices presence and will change state if no data receieved
+ *          Added support for MCCGQ01LM
+ *          Added safeguard limits to humidity, pressure and temperature measurements
+ *          Fixed the pressure unit description to hPa
  *
  *  v0.07 - Added support for WXKG01LM
  *          Added support for WXKG12LM
@@ -83,6 +87,7 @@ metadata {
 		fingerprint profileId: "0104", inClusters: "0000,FFFF,0406,0400,0500,0001,0003", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.sensor_motion", deviceJoinName: "Xiaomi Aqara Motion Sensor"
 		fingerprint profileId: "0104", inClusters: "0003,0012", outClusters: "0004,0003,0005,0012", manufacturer: "LUMI", model: "lumi.vibration.aq1", deviceJoinName: "Xiaomi Aqara Vibration Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0006", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.sensor_magnet.aq2", deviceJoinName: "Xiaomi Aqara Contact Sensor"
+		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0019", outClusters: "0000,0004,0003,0006,0008,0005,0019", manufacturer: "LUMI", model: "lumi.sensor_magnet", deviceJoinName: "Xiaomi Mijia Door and Window Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.remote.b186acn01", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.sensor_86sw1", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0019", outClusters: "0000,0004,0003,0006,0008,0005,0019", manufacturer: "LUMI", model: "lumi.sensor_switch", deviceJoinName: "Xiaomi Mijia Wireless Switch"
@@ -93,8 +98,9 @@ metadata {
 	preferences {
 		input name: "infoLogging", type: "bool", title: "Enable info message logging", description: "", defaultValue: true
 		input name: "debugLogging", type: "bool", title: "Enable debug message logging", description: "", defaultValue: false
-		input name: "presenceDetect", type: "bool", title: "Enable presence detection", description: "This will keep track of the devices presence and will change state if no updates in 3 hours. If it does lose presence try pushing the reset button on the device if present.", defaultValue: true
-		input name: "holdDuration", type: "number", title: "Button hold duration", description: "How long in seconds (1 to 10) the button needs to be pushed to be in a held state.<br>\n(WXKG01LM Wireless Switch ONLY)", defaultValue: "1", range: "1..10"
+		input name: "presenceDetect", type: "bool", title: "Enable presence detection", description: "This will keep track of the devices presence and will change state if no data received within the Presence Timeout. If it does lose presence try pushing the reset button on the device if available.", defaultValue: true
+		input name: "presenceHours", type: "enum", title: "Presence Timeout", description: "The number of hours before a device is considered 'not present'.<br>Note: Some of these devices only update their battery every 6 hours.", defaultValue: "12", options: ["2","6","12","24"]
+		input name: "holdDuration", type: "number", title: "Button hold duration", description: "How long in seconds (1 to 10) the button needs to be pushed to be in a held state.<br>(WXKG01LM Wireless Switch ONLY)", defaultValue: "1", range: "1..10"
 	}
 }
 
@@ -166,18 +172,30 @@ def parse(String description) {
 				def rawValue = hexStrToSignedInt(descMap.value) / 100
 				def Scale = location.temperatureScale
 				if (Scale == "F") rawValue = (rawValue * 1.8) + 32
-				sendEvent("name": "temperature", "value": rawValue, "unit": "\u00B0"+Scale, "displayed": true, isStateChange: true)
-				if (infoLogging) log.info "$device.displayName temperature changed to $rawValue\u00B0"+Scale
+				if (rawValue > 200 || rawValue < -200){
+					if (infoLogging) log.info "$device.displayName Ignored temperature value: $rawValue\u00B0"+Scale
+				} else {
+					sendEvent("name": "temperature", "value": rawValue, "unit": "\u00B0"+Scale, "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "$device.displayName temperature changed to $rawValue\u00B0"+Scale
+				}
 			}
 			else if (descMap.cluster == "0403" && descMap.attrId == "0000") {
 				def rawValue = Integer.parseInt(descMap.value,16)
-				sendEvent("name": "pressure", "value": rawValue, "unit": "kPa", "displayed": true, isStateChange: true)
-				if (infoLogging) log.info "$device.displayName pressure changed to $rawValue"
+				if (rawValue > 2000 || rawValue < 500){
+					if (infoLogging) log.info "$device.displayName Ignored pressure value: $rawValue"
+				} else {
+					sendEvent("name": "pressure", "value": rawValue, "unit": "hPa", "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "$device.displayName pressure changed to $rawValue"
+				}
 			}
 			else if (descMap.cluster == "0405" && descMap.attrId == "0000") {
-				def rawValue = Integer.parseInt(descMap.value,16)/100
-				sendEvent("name": "humidity", "value": rawValue, "unit": "%", "displayed": true, isStateChange: true)
-				if (infoLogging) log.info "$device.displayName humidity changed to $rawValue"
+				def rawValue = Integer.parseInt(descMap.value,16) / 100
+				if (rawValue > 100 || rawValue < 0){
+					if (infoLogging) log.info "$device.displayName Ignored humidity value: $rawValue"
+				} else {
+					sendEvent("name": "humidity", "value": rawValue, "unit": "%", "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "$device.displayName humidity changed to $rawValue"
+				}
 			}
 			else if (descMap.cluster == "0406" && descMap.attrId == "0000") {
 				def rawValue = Integer.parseInt(descMap.value,16)
@@ -284,17 +302,24 @@ def parse(String description) {
 		unschedule(presenceTracker)
 		sendEvent("name": "presence", "value":  "present", "displayed": true, isStateChange: true)
 		if (debugLogging) log.info "$device.displayName present"
-		runIn(10800, "presenceTracker");
+		presenceStart()
 	}
 }
 
 def updated() {
-	if (debugLogging) log.debug "updated()"
+	unschedule(presenceTracker)
+	if (presenceDetect) presenceStart()
 }
 
 def presenceTracker() {
 	sendEvent("name": "presence", "value":  "not present", "displayed": true, isStateChange: true)
 	if (infoLogging) log.info "$device.displayName not present"
+}
+
+def presenceStart() {
+	if (presenceHours == null) presenceHours = "12"
+	def scheduleHours = presenceHours.toInteger() * 60 * 60
+	runIn(scheduleHours, "presenceTracker")
 }
 
 def deviceHeld() {
@@ -380,6 +405,8 @@ def configure() {
 
 	unschedule()
 	state.clear()
+
+	if (presenceDetect) presenceStart()
 
 	cmd = [
 		"zdo bind 0x${device.deviceNetworkId} 0x${device.endpointId} 0x01 0x0000 {${device.zigbeeId}} {}",
