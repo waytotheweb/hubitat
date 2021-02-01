@@ -7,6 +7,7 @@
  *  Xiaomi Aqara Vibration Sensor		: DJT11LM
  *  Xiaomi Aqara Water Leak Sensor		: SJCGQ11LM
  *  Xiaomi Aqara Wireless Mini Switch		: WXKG12LM
+ *  Xiaomi Aqara Wireless Mini Switch           : WXKG11LM
  *  Xiaomi Aqara Wireless Single Remote Switch	: WXKG03LM
  *  Xiaomi Mijia Door and Window Sensor		: MCCGQ01LM
  *  Xiaomi Mijia Human Body Sensor		: RTCGQ01LM
@@ -23,6 +24,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Changelog:
+ *
+ *  v0.09 - Added support for WXKG11LM
  *
  *  v0.08 - Added simple presence tracking that checks the devices presence and will change state if no data receieved
  *          Added support for MCCGQ01LM
@@ -91,8 +94,9 @@ metadata {
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.remote.b186acn01", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.sensor_86sw1", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0019", outClusters: "0000,0004,0003,0006,0008,0005,0019", manufacturer: "LUMI", model: "lumi.sensor_switch", deviceJoinName: "Xiaomi Mijia Wireless Switch"
-		fingerprint profileId: "0104", inClusters: "0000,0012,0006,0001", outClusters: "0000", manufacturer: "LUMI", model: "lumi.sensor_swit", deviceJoinName: "Aqara Wireless Mini Switch"
-		fingerprint profileId: "0104", inClusters: "0000,0003,0001", outClusters: "0019", manufacturer: "LUMI", model: "lumi.sensor_wleak.aq1", deviceJoinName: "Aqara Water Leak Sensor"
+		fingerprint profileId: "0104", inClusters: "0000,FFFF,0006", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.sensor_switch.aq2", deviceJoinName: "Xiaomi Aqara Wireless Mini Switch"
+		fingerprint profileId: "0104", inClusters: "0000,0012,0006,0001", outClusters: "0000", manufacturer: "LUMI", model: "lumi.sensor_swit", deviceJoinName: "Xiaomi Aqara Wireless Mini Switch"
+		fingerprint profileId: "0104", inClusters: "0000,0003,0001", outClusters: "0019", manufacturer: "LUMI", model: "lumi.sensor_wleak.aq1", deviceJoinName: "Xiaomi Aqara Water Leak Sensor"
 
 	}
 	preferences {
@@ -228,17 +232,17 @@ def parse(String description) {
 				if (rawValue == 1) contact = "open"
 				sendEvent("name": "contact", "value": contact, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName contact changed to $contact"
-				if (device.hasCapability("PushableButton") && getDeviceDataByName('model') == "lumi.sensor_switch"){
+				if (getDeviceDataByName('model') == "lumi.sensor_switch" || getDeviceDataByName('model') == "lumi.sensor_switch.aq2"){
 					if (rawValue == 0){
 						sendEvent("name": "pushed", "value": 1, "displayed": true, isStateChange: true)
 						sendEvent("name": "taps", "value": 1, "displayed": true, isStateChange: true)
 						if (infoLogging) log.info "$device.displayName pushed"
-						if (device.hasCapability("HoldableButton")){
+						if (getDeviceDataByName('model') == "lumi.sensor_switch"){
 							runIn(holdDuration, deviceHeld)
 							state.held = false
 						}
 					} else {
-						if (device.hasCapability("ReleasableButton")){
+						if (getDeviceDataByName('model') == "lumi.sensor_switch"){
 							if (state.held == true){
 								state.held = false
 								unschedule(deviceHeld)
@@ -251,7 +255,7 @@ def parse(String description) {
 					}
 				}
 			}
-			else if (descMap.cluster == "0006" && descMap.attrId == "8000" && getDeviceDataByName('model') == "lumi.sensor_switch") {
+			else if (descMap.cluster == "0006" && descMap.attrId == "8000" && (getDeviceDataByName('model') == "lumi.sensor_switch" || getDeviceDataByName('model') == "lumi.sensor_switch.aq2")) {
 				def rawValue = Integer.parseInt(descMap.value,16)
 				if (rawValue > 4) rawValue = 4
 				sendEvent("name": "pushed", "value":  1, "displayed": true, isStateChange: true)
