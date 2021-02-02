@@ -25,6 +25,9 @@
  *
  *  Changelog:
  *
+ *  v0.10 - Added motion to contact sensors via an option for those that swing that way
+ *
+ *
  *  v0.09 - Added support for WXKG11LM
  *
  *  v0.08 - Added simple presence tracking that checks the devices presence and will change state if no data receieved
@@ -105,6 +108,7 @@ metadata {
 		input name: "presenceDetect", type: "bool", title: "Enable presence detection", description: "This will keep track of the devices presence and will change state if no data received within the Presence Timeout. If it does lose presence try pushing the reset button on the device if available.", defaultValue: true
 		input name: "presenceHours", type: "enum", title: "Presence Timeout", description: "The number of hours before a device is considered 'not present'.<br>Note: Some of these devices only update their battery every 6 hours.", defaultValue: "12", options: ["2","6","12","24"]
 		input name: "holdDuration", type: "number", title: "Button hold duration", description: "How long in seconds (1 to 10) the button needs to be pushed to be in a held state.<br>(WXKG01LM Wireless Switch ONLY)", defaultValue: "1", range: "1..10"
+		input name: "motionContact", type: "bool", title: "Add motion to contact sensors", description: "This adds a motion state to contact sensors, i.e. 'contact: open' = 'motion: active'", defaultValue: false
 	}
 }
 
@@ -232,6 +236,12 @@ def parse(String description) {
 				if (rawValue == 1) contact = "open"
 				sendEvent("name": "contact", "value": contact, "displayed": true, isStateChange: true)
 				if (infoLogging) log.info "$device.displayName contact changed to $contact"
+				if (motionContact){
+					def motion = "inactive"
+					if (rawValue == 1) motion = "active"
+					sendEvent("name": "motion", "value": motion, "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "$device.displayName motion changed to $motion"
+				}
 				if (getDeviceDataByName('model') == "lumi.sensor_switch" || getDeviceDataByName('model') == "lumi.sensor_switch.aq2"){
 					if (rawValue == 0){
 						sendEvent("name": "pushed", "value": 1, "displayed": true, isStateChange: true)
