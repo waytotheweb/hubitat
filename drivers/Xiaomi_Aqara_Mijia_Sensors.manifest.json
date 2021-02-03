@@ -5,7 +5,7 @@
   "minimumHEVersion": "0.0",
   "documentationLink": "https://github.com/waytotheweb/hubitat",
   "communityLink": "https://community.hubitat.com/t/beta-release-xiaomi-aquara-combined-driver/61630",
-  "dateReleased": "2021-02-01",
+  "dateReleased": "2021-02-03",
   "drivers": [
     {
       "id": "78e2689b-12bc-449d-90f5-bb0aa5ec2b95",

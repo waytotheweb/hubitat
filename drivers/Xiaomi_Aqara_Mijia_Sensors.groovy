@@ -25,8 +25,8 @@
  *
  *  Changelog:
  *
- *  v0.10 - Added motion to contact sensors via an option for those that swing that way
- *
+ *  v0.10 - Added motion to contact sensors via an option for those want it
+ *          Fixed button pushed status for WXKG01LM
  *
  *  v0.09 - Added support for WXKG11LM
  *
@@ -242,25 +242,25 @@ def parse(String description) {
 					sendEvent("name": "motion", "value": motion, "displayed": true, isStateChange: true)
 					if (infoLogging) log.info "$device.displayName motion changed to $motion"
 				}
-				if (getDeviceDataByName('model') == "lumi.sensor_switch" || getDeviceDataByName('model') == "lumi.sensor_switch.aq2"){
+				if (getDeviceDataByName('model') == "lumi.sensor_switch.aq2"){
+					sendEvent("name": "pushed", "value": 1, "displayed": true, isStateChange: true)
+					if (infoLogging) log.info "$device.displayName was pushed"
+				}
+				if (getDeviceDataByName('model') == "lumi.sensor_switch"){
 					if (rawValue == 0){
-						sendEvent("name": "pushed", "value": 1, "displayed": true, isStateChange: true)
-						sendEvent("name": "taps", "value": 1, "displayed": true, isStateChange: true)
-						if (infoLogging) log.info "$device.displayName pushed"
-						if (getDeviceDataByName('model') == "lumi.sensor_switch"){
-							runIn(holdDuration, deviceHeld)
-							state.held = false
-						}
+						runIn(holdDuration, deviceHeld)
+						state.held = false
 					} else {
-						if (getDeviceDataByName('model') == "lumi.sensor_switch"){
-							if (state.held == true){
-								state.held = false
-								unschedule(deviceHeld)
-								sendEvent("name": "released", "value":  1, "displayed": true, isStateChange: true)
-								if (infoLogging) log.info "$device.displayName released"
-							} else {
-								unschedule(deviceHeld)
-							}
+						if (state.held == true){
+							state.held = false
+							unschedule(deviceHeld)
+							sendEvent("name": "released", "value":  1, "displayed": true, isStateChange: true)
+							if (infoLogging) log.info "$device.displayName was released"
+						} else {
+							unschedule(deviceHeld)
+							sendEvent("name": "pushed", "value": 1, "displayed": true, isStateChange: true)
+							sendEvent("name": "taps", "value": 1, "displayed": true, isStateChange: true)
+							if (infoLogging) log.info "$device.displayName was pushed"
 						}
 					}
 				}
@@ -268,13 +268,12 @@ def parse(String description) {
 			else if (descMap.cluster == "0006" && descMap.attrId == "8000" && (getDeviceDataByName('model') == "lumi.sensor_switch" || getDeviceDataByName('model') == "lumi.sensor_switch.aq2")) {
 				def rawValue = Integer.parseInt(descMap.value,16)
 				if (rawValue > 4) rawValue = 4
-				sendEvent("name": "pushed", "value":  1, "displayed": true, isStateChange: true)
 				sendEvent("name": "taps", "value":  rawValue, "displayed": true, isStateChange: true)
 				if (rawValue == 2){
 					sendEvent("name": "doubleTapped", "value":  1, "displayed": true, isStateChange: true)
-					if (infoLogging) log.info "$device.displayName button $button was doubleTapped"
+					if (infoLogging) log.info "$device.displayName was doubleTapped"
 				}
-				if (infoLogging) log.info "$device.displayName pushed $rawValue time(s)"
+				if (infoLogging) log.info "$device.displayName tapped $rawValue time(s)"
 			}
 			else if (descMap.cluster == "0012" && descMap.attrId == "0055") {
 				def button = Integer.parseInt(descMap.endpoint,16) 
@@ -315,7 +314,7 @@ def parse(String description) {
 	if (presenceDetect){
 		unschedule(presenceTracker)
 		sendEvent("name": "presence", "value":  "present", "displayed": true, isStateChange: true)
-		if (debugLogging) log.info "$device.displayName present"
+		if (debugLogging) log.debug "$device.displayName present"
 		presenceStart()
 	}
 }
@@ -340,7 +339,7 @@ def deviceHeld() {
 	if (state.held == false){
 		state.held = true
 		sendEvent("name": "held", "value":  1, "displayed": true, isStateChange: true)
-		if (infoLogging) log.info "$device.displayName held for at least $holdDuration seconds"
+		if (infoLogging) log.info "$device.displayName was held"
 	}
 }
 
