@@ -1,18 +1,20 @@
 /**
  *  Xiaomi Aqara Mijia Sensors and Switches:
  *
- *  Xiaomi Aqara Contact Sensor			: MCCGQ11LM
- *  Xiaomi Aqara Motion Sensor                  : RTCGQ11LM
- *  Xiaomi Aqara Temperature Sensor		: WSDCGQ11LM
- *  Xiaomi Aqara Vibration Sensor		: DJT11LM
- *  Xiaomi Aqara Water Leak Sensor		: SJCGQ11LM
- *  Xiaomi Aqara Wireless Mini Switch		: WXKG12LM
- *  Xiaomi Aqara Wireless Mini Switch           : WXKG11LM
- *  Xiaomi Aqara Wireless Single Remote Switch	: WXKG03LM
- *  Xiaomi Mijia Door and Window Sensor		: MCCGQ01LM
- *  Xiaomi Mijia Human Body Sensor		: RTCGQ01LM
- *  Xiaomi Mijia Light Sensor			: GZCGQ01LM
- *  Xiaomi Mijia Wireless Switch		: WXKG01LM
+ *  Xiaomi Aqara Contact Sensor				: MCCGQ11LM [*]
+ *  Xiaomi Aqara Motion Sensor				: RTCGQ11LM [*]
+ *  Xiaomi Aqara Temperature Sensor			: WSDCGQ11LM
+ *  Xiaomi Aqara Vibration Sensor			: DJT11LM [*]
+ *  Xiaomi Aqara Water Leak Sensor			: SJCGQ11LM [*]
+ *  Xiaomi Aqara Wireless Mini Switch with Gyroscope	: WXKG12LM [*]
+ *  Xiaomi Aqara Wireless Mini Switch			: WXKG11LM
+ *  Xiaomi Aqara Wireless Single Remote Switch		: WXKG03LM [*]
+ *  Xiaomi Mijia Door and Window Sensor			: MCCGQ01LM
+ *  Xiaomi Mijia Human Body Sensor			: RTCGQ01LM
+ *  Xiaomi Mijia Light Sensor				: GZCGQ01LM
+ *  Xiaomi Mijia Wireless Switch			: WXKG01LM [*]
+ *
+ *  [*] These devices have an internal temperature sensor, though with only rough accuracy
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -24,6 +26,10 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Changelog:
+ *
+ *  v0.11 - Modified presence to only update if previously not present or set
+ *          Added a temperature offset setting
+ *          Added experimental support for an internal temperature sensor that some of these devices contain (see above [*])
  *
  *  v0.10 - Added motion to contact sensors via an option for those want it
  *          Fixed button pushed status for WXKG01LM
@@ -86,6 +92,7 @@ metadata {
 		attribute "taps", "number"
 		attribute "released", "number"
 		attribute "shaken", "number"
+		attribute "temperature", "number"
 
 		fingerprint profileId: "0104", inClusters: "0000,0400,0003,0001", outClusters: "0003", manufacturer: "LUMI", model: "lumi.sen_ill.mgl01", deviceJoinName: "Xiaomi Mijia Light Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0402,0403,0405", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.weather", deviceJoinName: "Xiaomi Aqara Temperature Sensor"
@@ -97,7 +104,7 @@ metadata {
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.remote.b186acn01", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.sensor_86sw1", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0019", outClusters: "0000,0004,0003,0006,0008,0005,0019", manufacturer: "LUMI", model: "lumi.sensor_switch", deviceJoinName: "Xiaomi Mijia Wireless Switch"
-		fingerprint profileId: "0104", inClusters: "0000,FFFF,0006", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.sensor_switch.aq2", deviceJoinName: "Xiaomi Aqara Wireless Mini Switch"
+		fingerprint profileId: "0104", inClusters: "0000,FFFF,0006", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.sensor_switch.aq3", deviceJoinName: "Aqara Wireless Mini Switch with Gyroscope"
 		fingerprint profileId: "0104", inClusters: "0000,0012,0006,0001", outClusters: "0000", manufacturer: "LUMI", model: "lumi.sensor_swit", deviceJoinName: "Xiaomi Aqara Wireless Mini Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0003,0001", outClusters: "0019", manufacturer: "LUMI", model: "lumi.sensor_wleak.aq1", deviceJoinName: "Xiaomi Aqara Water Leak Sensor"
 
@@ -108,6 +115,8 @@ metadata {
 		input name: "presenceDetect", type: "bool", title: "Enable presence detection", description: "This will keep track of the devices presence and will change state if no data received within the Presence Timeout. If it does lose presence try pushing the reset button on the device if available.", defaultValue: true
 		input name: "presenceHours", type: "enum", title: "Presence Timeout", description: "The number of hours before a device is considered 'not present'.<br>Note: Some of these devices only update their battery every 6 hours.", defaultValue: "12", options: ["2","6","12","24"]
 		input name: "holdDuration", type: "number", title: "Button hold duration", description: "How long in seconds (1 to 10) the button needs to be pushed to be in a held state.<br>(WXKG01LM Wireless Switch ONLY)", defaultValue: "1", range: "1..10"
+		input name: "temperatureOffset", type: "number", title: "Temperature Offset", description: "This setting compensates for an inaccurate temperature sensor. For example, set to -7 if the temperature is 7 degress too warm.", defaultValue: "0"
+		input name: "internalTemperature", type: "bool", title: "Experimental internal temperature", description: "Some of these devices have an internal temperature sensor. It only reports when the battery reports (usually every 50 minutes) and is not very accurate and usually requires an offset.", defaultValue: false
 		input name: "motionContact", type: "bool", title: "Add motion to contact sensors", description: "This adds a motion state to contact sensors, i.e. 'contact: open' = 'motion: active'", defaultValue: false
 	}
 }
@@ -142,8 +151,26 @@ def parse(String description) {
 					else if (mydescMap.attrId == "FF02" && mydescMap.value[8..9] == "21"){
 						batteryVoltage = mydescMap.value[12..13] + mydescMap.value[10..11]
 					}
+					
 					if (batteryVoltage != ""){
 						batteryEvent(Integer.parseInt(batteryVoltage, 16) / 100)
+					}
+
+					if (internalTemperature && mydescMap.attrId == "FF01" && mydescMap.value[10..13] == "0328"){
+						rawValue = hexStrToSignedInt(mydescMap.value[14..15])
+						if (debugLogging) log.debug "Processing Xiaomi data (internal temperature: $rawValue)"
+						def Scale = location.temperatureScale
+						if (Scale == "F") rawValue = (rawValue * 1.8) + 32
+						if (temperatureOffset == null) temperatureOffset = "0"
+						def offsetrawValue = (rawValue + temperatureOffset.toInteger())
+						rawValue = offsetrawValue
+						if (debugLogging) log.debug "Processing Xiaomi data (internal temperature: $rawValue with $internalTempOffset offset and conversion)"
+						if (rawValue > 200 || rawValue < -200){
+							if (infoLogging) log.info "$device.displayName Ignored internal temperature value: $rawValue\u00B0"+Scale
+						} else {
+							sendEvent("name": "temperature", "value": rawValue, "unit": "\u00B0"+Scale, "displayed": true, isStateChange: true)
+							if (infoLogging) log.info "$device.displayName internal temperature changed to $rawValue\u00B0"+Scale
+						}
 					}
 				}
 			}
@@ -180,6 +207,9 @@ def parse(String description) {
 				def rawValue = hexStrToSignedInt(descMap.value) / 100
 				def Scale = location.temperatureScale
 				if (Scale == "F") rawValue = (rawValue * 1.8) + 32
+				if (temperatureOffset == null) temperatureOffset = "0"
+				def offsetrawValue = (rawValue + temperatureOffset.toInteger())
+				rawValue = offsetrawValue
 				if (rawValue > 200 || rawValue < -200){
 					if (infoLogging) log.info "$device.displayName Ignored temperature value: $rawValue\u00B0"+Scale
 				} else {
@@ -313,8 +343,10 @@ def parse(String description) {
 	}
 	if (presenceDetect){
 		unschedule(presenceTracker)
-		sendEvent("name": "presence", "value":  "present", "displayed": true, isStateChange: true)
-		if (debugLogging) log.debug "$device.displayName present"
+		if (device.currentValue("presence") != "present"){
+			sendEvent("name": "presence", "value":  "present", "displayed": true, isStateChange: true)
+			if (debugLogging) log.debug "$device.displayName present"
+		}
 		presenceStart()
 	}
 }
@@ -402,10 +434,11 @@ def refresh() {
 	cmd += zigbee.onOffConfig()
 	cmd += zigbee.batteryConfig()
 
-	cmd += zigbee.readAttribute(0x0001, 0x0020)	// battery
+	cmd += zigbee.readAttribute(0x0001, 0x0020)
 	cmd += zigbee.readAttribute(0x0000, 0x0004)
 	cmd += zigbee.readAttribute(0x0000, 0x0005)
-	cmd += zigbee.readAttribute(0x0400, 0x0000)	// illuminance
+	cmd += zigbee.readAttribute(0x0400, 0x0000)
+	cmd += zigbee.readAttribute(0x0402, 0x0000)
 
 	return cmd
 }
@@ -426,9 +459,11 @@ def configure() {
 		"zdo bind 0x${device.deviceNetworkId} 0x${device.endpointId} 0x01 0x0001 {${device.zigbeeId}} {}",
 		"zdo bind 0x${device.deviceNetworkId} 0x${device.endpointId} 0x01 0x0003 {${device.zigbeeId}} {}",
 		"zdo bind 0x${device.deviceNetworkId} 0x${device.endpointId} 0x01 0x0400 {${device.zigbeeId}} {}",
+		"zdo bind 0x${device.deviceNetworkId} 0x${device.endpointId} 0x01 0x0402 {${device.zigbeeId}} {}",
 	]
 
 	cmd += zigbee.configureReporting(0x0400, 0x0000, 0x21, 10,   3600, 300)
+	cmd += zigbee.configureReporting(0x0402, 0x0000, 0x21, 10,   3600, 300)
 	cmd += zigbee.configureReporting(0x0001, 0x0020, 0x20, 3600, 3600, 1)
 
 	return cmd
