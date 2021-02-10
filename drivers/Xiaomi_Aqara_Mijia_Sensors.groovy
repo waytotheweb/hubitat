@@ -6,8 +6,9 @@
  *  Xiaomi Aqara Temperature Sensor			: WSDCGQ11LM
  *  Xiaomi Aqara Vibration Sensor			: DJT11LM [*]
  *  Xiaomi Aqara Water Leak Sensor			: SJCGQ11LM [*]
- *  Xiaomi Aqara Wireless Mini Switch with Gyroscope	: WXKG12LM [*]
+ *  Xiaomi Aqara Wireless Double Remote Switch		: WXKG02LM [*]
  *  Xiaomi Aqara Wireless Mini Switch			: WXKG11LM
+ *  Xiaomi Aqara Wireless Mini Switch with Gyroscope	: WXKG12LM [*]
  *  Xiaomi Aqara Wireless Single Remote Switch		: WXKG03LM [*]
  *  Xiaomi Mijia Door and Window Sensor			: MCCGQ01LM
  *  Xiaomi Mijia Human Body Sensor			: RTCGQ01LM
@@ -26,6 +27,14 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Changelog:
+ *
+ *  v0.12 - Added more presence intervals
+ *          Added device Commands, however they are all commented out by default
+ *          Removed unnecessary "isStateChange:true" for all devices apart from buttons
+ *          Added fingerprint for WXKG02LM
+ *          Modified Held duration setting to float to allow for milliseconds (e.g 0.5 = 500 milliseconds)
+ *          Added configurable virtual Release event for WXKG02LM and WXKG03LM
+ *          Added setting to allow WXKG01LM to represent 5 buttons instead of a single button with multiple states
  *
  *  v0.11 - Modified presence to only update if previously not present or set
  *          Added a temperature offset setting
@@ -94,6 +103,27 @@ metadata {
 		attribute "shaken", "number"
 		attribute "temperature", "number"
 
+
+// If you want to use these you will have to remove the comment prefix for
+// those you want. They are not enabled by default as they can make a mess of
+// the Attribute states which can only be cleared by deleting and adding the
+// device back. If the driver is updated you will have to comment them out
+// again.
+// Note: The attribute state will be updated regardless of the previous state.
+
+//		command "open"
+//		command "closed"
+//		command "active"
+//		command "inactive"
+//		command "present"
+//		command "notPresent"
+//		command "push"
+//		command "hold"
+//		command "doubleTap"
+//		command "shake"
+//		command "wet"
+//		command "dry"
+
 		fingerprint profileId: "0104", inClusters: "0000,0400,0003,0001", outClusters: "0003", manufacturer: "LUMI", model: "lumi.sen_ill.mgl01", deviceJoinName: "Xiaomi Mijia Light Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0402,0403,0405", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.weather", deviceJoinName: "Xiaomi Aqara Temperature Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,FFFF,0406,0400,0500,0001,0003", outClusters: "0000,0019", manufacturer: "LUMI", model: "lumi.sensor_motion.aq2", deviceJoinName: "Xiaomi Aqara Motion Sensor"
@@ -102,6 +132,7 @@ metadata {
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0006", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.sensor_magnet.aq2", deviceJoinName: "Xiaomi Aqara Contact Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0019", outClusters: "0000,0004,0003,0006,0008,0005,0019", manufacturer: "LUMI", model: "lumi.sensor_magnet", deviceJoinName: "Xiaomi Mijia Door and Window Sensor"
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.remote.b186acn01", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
+		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.remote.b286acn01", deviceJoinName: "Xiaomi Aqara Wireless Double Remote Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0003,0019,0012,FFFF", outClusters: "0000,0003,0004,0005,0019,0012,FFFF", manufacturer: "LUMI", model: "lumi.sensor_86sw1", deviceJoinName: "Xiaomi Aqara Wireless Single Remote Switch"
 		fingerprint profileId: "0104", inClusters: "0000,0003,FFFF,0019", outClusters: "0000,0004,0003,0006,0008,0005,0019", manufacturer: "LUMI", model: "lumi.sensor_switch", deviceJoinName: "Xiaomi Mijia Wireless Switch"
 		fingerprint profileId: "0104", inClusters: "0000,FFFF,0006", outClusters: "0000,0004,FFFF", manufacturer: "LUMI", model: "lumi.sensor_switch.aq3", deviceJoinName: "Aqara Wireless Mini Switch with Gyroscope"
@@ -112,12 +143,13 @@ metadata {
 	preferences {
 		input name: "infoLogging", type: "bool", title: "Enable info message logging", description: "", defaultValue: true
 		input name: "debugLogging", type: "bool", title: "Enable debug message logging", description: "", defaultValue: false
-		input name: "presenceDetect", type: "bool", title: "Enable presence detection", description: "This will keep track of the devices presence and will change state if no data received within the Presence Timeout. If it does lose presence try pushing the reset button on the device if available.", defaultValue: true
-		input name: "presenceHours", type: "enum", title: "Presence Timeout", description: "The number of hours before a device is considered 'not present'.<br>Note: Some of these devices only update their battery every 6 hours.", defaultValue: "12", options: ["2","6","12","24"]
-		input name: "holdDuration", type: "number", title: "Button hold duration", description: "How long in seconds (1 to 10) the button needs to be pushed to be in a held state.<br>(WXKG01LM Wireless Switch ONLY)", defaultValue: "1", range: "1..10"
+		input name: "presenceDetect", type: "bool", title: "Enable Presence Detection", description: "This will keep track of the devices presence and will change state if no data received within the Presence Timeout. If it does lose presence try pushing the reset button on the device if available.", defaultValue: true
+		input name: "presenceHours", type: "enum", title: "Presence Timeout", description: "The number of hours before a device is considered 'not present'.<br>Note: Some of these devices only update their battery every 6 hours.", defaultValue: "12", options: ["1","2","3","4","6","12","24"]
+		input name: "holdDuration", type: "number", title: "Button Hold Duration", description: "For WXKG01LM, this is how long the button needs to be pushed to be in a held state.<br> For WXKG02LM, WXKG03LM it is how long the button needs to be held to register a release state.<br> Time is in seconds, decimals can be used, e.g. 0.5 is 500ms", defaultValue: "1"
+		input name: "allButtons", type: "bool", title: "WXKG01LM Button Function", description: "By default, the WXKG01LM is treated as a single button. To enable separate buttons for each press type, enable this option.", defaultValue: false
 		input name: "temperatureOffset", type: "number", title: "Temperature Offset", description: "This setting compensates for an inaccurate temperature sensor. For example, set to -7 if the temperature is 7 degress too warm.", defaultValue: "0"
-		input name: "internalTemperature", type: "bool", title: "Experimental internal temperature", description: "Some of these devices have an internal temperature sensor. It only reports when the battery reports (usually every 50 minutes) and is not very accurate and usually requires an offset.", defaultValue: false
-		input name: "motionContact", type: "bool", title: "Add motion to contact sensors", description: "This adds a motion state to contact sensors, i.e. 'contact: open' = 'motion: active'", defaultValue: false
+		input name: "internalTemperature", type: "bool", title: "Experimental Internal Temperature", description: "Some of these devices have an internal temperature sensor. It only reports when the battery reports (usually every 50 minutes) and is not very accurate and usually requires an offset.", defaultValue: false
+		input name: "motionContact", type: "bool", title: "Add Motion To Contact Sensors", description: "This adds a motion state to contact sensors, i.e. 'contact: open' = 'motion: active'", defaultValue: false
 	}
 }
 
@@ -126,11 +158,11 @@ def parse(String description) {
 
 	if (description?.startsWith("zone status ")) {
 		if (description?.startsWith("zone status 0x0001")){
-			sendEvent("name": "water", "value": "wet", "displayed": true, isStateChange: true)
+			sendEvent("name": "water", "value": "wet")
 			if (infoLogging) log.info "$device.displayName water changed to wet"
 		}
 		else if (description?.startsWith("zone status 0x0000")){
-			sendEvent("name": "water", "value": "dry", "displayed": true, isStateChange: true)
+			sendEvent("name": "water", "value": "dry")
 			if (infoLogging) log.info "$device.displayName water changed to dry"
 		}
 	}
@@ -168,7 +200,7 @@ def parse(String description) {
 						if (rawValue > 200 || rawValue < -200){
 							if (infoLogging) log.info "$device.displayName Ignored internal temperature value: $rawValue\u00B0"+Scale
 						} else {
-							sendEvent("name": "temperature", "value": rawValue, "unit": "\u00B0"+Scale, "displayed": true, isStateChange: true)
+							sendEvent("name": "temperature", "value": rawValue, "unit": "\u00B0"+Scale)
 							if (infoLogging) log.info "$device.displayName internal temperature changed to $rawValue\u00B0"+Scale
 						}
 					}
@@ -200,7 +232,7 @@ def parse(String description) {
 				def rawLux = Integer.parseInt(descMap.value,16)
 				def lux = rawLux > 0 ? Math.round(Math.pow(10,(rawLux/10000)) - 1) : 0
 				if (getDeviceDataByName('model') == "lumi.sensor_motion.aq2") lux = rawLux
-				sendEvent("name": "illuminance", "value": lux, "unit": "lux", "displayed": true, isStateChange: true)
+				sendEvent("name": "illuminance", "value": lux, "unit": "lux")
 				if (infoLogging) log.info "$device.displayName illuminance changed to $lux"
 			}
 			else if (descMap.cluster == "0402" && descMap.attrId == "0000") {
@@ -213,7 +245,7 @@ def parse(String description) {
 				if (rawValue > 200 || rawValue < -200){
 					if (infoLogging) log.info "$device.displayName Ignored temperature value: $rawValue\u00B0"+Scale
 				} else {
-					sendEvent("name": "temperature", "value": rawValue, "unit": "\u00B0"+Scale, "displayed": true, isStateChange: true)
+					sendEvent("name": "temperature", "value": rawValue, "unit": "\u00B0"+Scale)
 					if (infoLogging) log.info "$device.displayName temperature changed to $rawValue\u00B0"+Scale
 				}
 			}
@@ -222,7 +254,7 @@ def parse(String description) {
 				if (rawValue > 2000 || rawValue < 500){
 					if (infoLogging) log.info "$device.displayName Ignored pressure value: $rawValue"
 				} else {
-					sendEvent("name": "pressure", "value": rawValue, "unit": "hPa", "displayed": true, isStateChange: true)
+					sendEvent("name": "pressure", "value": rawValue, "unit": "hPa")
 					if (infoLogging) log.info "$device.displayName pressure changed to $rawValue"
 				}
 			}
@@ -231,7 +263,7 @@ def parse(String description) {
 				if (rawValue > 100 || rawValue < 0){
 					if (infoLogging) log.info "$device.displayName Ignored humidity value: $rawValue"
 				} else {
-					sendEvent("name": "humidity", "value": rawValue, "unit": "%", "displayed": true, isStateChange: true)
+					sendEvent("name": "humidity", "value": rawValue, "unit": "%")
 					if (infoLogging) log.info "$device.displayName humidity changed to $rawValue"
 				}
 			}
@@ -239,23 +271,23 @@ def parse(String description) {
 				def rawValue = Integer.parseInt(descMap.value,16)
 				def status = "inactive"
 				if (rawValue == 1) status = "active"
-				sendEvent("name": "motion", "value": status, "displayed": true, isStateChange: true)
+				sendEvent("name": "motion", "value": status)
 				if (infoLogging) log.info "$device.displayName motion changed to $status"
 				unschedule(resetMotion)
 				runIn(65, resetMotion)
 			}
 			else if (descMap.cluster == "0101" && descMap.attrId == "0508") {
 				def status = "active"
-				sendEvent("name": "acceleration", "value": status, "displayed": true, isStateChange: true)
-				sendEvent("name": "motion", "value": "active", "displayed": true, isStateChange: true)
+				sendEvent("name": "acceleration", "value": status)
+				sendEvent("name": "motion", "value": "active")
 				if (infoLogging) log.info "$device.displayName acceleration changed to $status"
 				unschedule(resetVibration)
 				runIn(65, resetVibration)
 			}
 			else if (descMap.cluster == "0101" && descMap.attrId == "0055") {
 				def status = "active"
-				sendEvent("name": "tilt", "value": status, "displayed": true, isStateChange: true)
-				sendEvent("name": "motion", "value": "active", "displayed": true, isStateChange: true)
+				sendEvent("name": "tilt", "value": status)
+				sendEvent("name": "motion", "value": "active")
 				if (infoLogging) log.info "$device.displayName tilt changed to $status"
 				unschedule(resetVibration)
 				runIn(65, resetVibration)
@@ -264,33 +296,39 @@ def parse(String description) {
 				def rawValue = Integer.parseInt(descMap.value,16)
 				def contact = "closed"
 				if (rawValue == 1) contact = "open"
-				sendEvent("name": "contact", "value": contact, "displayed": true, isStateChange: true)
+				sendEvent("name": "contact", "value": contact)
 				if (infoLogging) log.info "$device.displayName contact changed to $contact"
 				if (motionContact){
 					def motion = "inactive"
 					if (rawValue == 1) motion = "active"
-					sendEvent("name": "motion", "value": motion, "displayed": true, isStateChange: true)
+					sendEvent("name": "motion", "value": motion)
 					if (infoLogging) log.info "$device.displayName motion changed to $motion"
 				}
 				if (getDeviceDataByName('model') == "lumi.sensor_switch.aq2"){
-					sendEvent("name": "pushed", "value": 1, "displayed": true, isStateChange: true)
+					sendEvent("name": "pushed", "value": 1, isStateChange: true)
 					if (infoLogging) log.info "$device.displayName was pushed"
 				}
 				if (getDeviceDataByName('model') == "lumi.sensor_switch"){
 					if (rawValue == 0){
-						runIn(holdDuration, deviceHeld)
+						int thisHold = Float.valueOf(holdDuration) * 1000
+						runInMillis(thisHold, deviceHeld)
 						state.held = false
 					} else {
 						if (state.held == true){
 							state.held = false
 							unschedule(deviceHeld)
-							sendEvent("name": "released", "value":  1, "displayed": true, isStateChange: true)
+							sendEvent("name": "released", "value":  1, isStateChange: true)
 							if (infoLogging) log.info "$device.displayName was released"
 						} else {
 							unschedule(deviceHeld)
-							sendEvent("name": "pushed", "value": 1, "displayed": true, isStateChange: true)
-							sendEvent("name": "taps", "value": 1, "displayed": true, isStateChange: true)
-							if (infoLogging) log.info "$device.displayName was pushed"
+							if (allButtons){
+								sendEvent("name": "pushed", "value": 1, isStateChange: true)
+								if (infoLogging) log.info "$device.displayName button 1 was pushed"
+							} else {
+								sendEvent("name": "pushed", "value": 1, isStateChange: true)
+								sendEvent("name": "taps", "value": 1, isStateChange: true)
+								if (infoLogging) log.info "$device.displayName was pushed"
+							}
 						}
 					}
 				}
@@ -298,12 +336,17 @@ def parse(String description) {
 			else if (descMap.cluster == "0006" && descMap.attrId == "8000" && (getDeviceDataByName('model') == "lumi.sensor_switch" || getDeviceDataByName('model') == "lumi.sensor_switch.aq2")) {
 				def rawValue = Integer.parseInt(descMap.value,16)
 				if (rawValue > 4) rawValue = 4
-				sendEvent("name": "taps", "value":  rawValue, "displayed": true, isStateChange: true)
-				if (rawValue == 2){
-					sendEvent("name": "doubleTapped", "value":  1, "displayed": true, isStateChange: true)
+				sendEvent("name": "taps", "value":  rawValue, isStateChange: true)
+				if (rawValue == 2 && allButtons == false){
+					sendEvent("name": "doubleTapped", "value":  1, isStateChange: true)
 					if (infoLogging) log.info "$device.displayName was doubleTapped"
 				}
-				if (infoLogging) log.info "$device.displayName tapped $rawValue time(s)"
+				if (allButtons){
+					sendEvent("name": "pushed", "value": rawValue, isStateChange: true)
+					if (infoLogging) log.info "$device.displayName button $rawValue was pushed"
+				} else {
+					if (infoLogging) log.info "$device.displayName tapped $rawValue time(s)"
+				}
 			}
 			else if (descMap.cluster == "0012" && descMap.attrId == "0055") {
 				def button = Integer.parseInt(descMap.endpoint,16) 
@@ -311,31 +354,38 @@ def parse(String description) {
 				if (debugLogging) log.debug "$device.displayName Button:$button, Action:$action"
 
 				if (action == 0) {
-					sendEvent("name": "held", "value":  button, "displayed": true, isStateChange: true)
+					sendEvent("name": "held", "value":  button, isStateChange: true)
 					if (infoLogging) log.info "$device.displayName button $button was held"
+					int thisHold = Float.valueOf(holdDuration) * 1000
+					state.held = true
+					runInMillis(thisHold, deviceReleased, [data: button])
 				}
 				else if (action == 1) {
-					sendEvent("name": "pushed", "value":  button, "displayed": true, isStateChange: true)
+					sendEvent("name": "pushed", "value":  button, isStateChange: true)
 					if (infoLogging) log.info "$device.displayName button $button was pushed $action time(s)"
 				}
 				else if (action == 2) {
-					sendEvent("name": "doubleTapped", "value":  button, "displayed": true, isStateChange: true)
+					sendEvent("name": "doubleTapped", "value":  button, isStateChange: true)
 					if (infoLogging) log.info "$device.displayName button $button was double tapped"
 				}
 				else if (action == 16) {
-					sendEvent("name": "held", "value":  button, "displayed": true, isStateChange: true)
+					sendEvent("name": "held", "value":  button, isStateChange: true)
 					if (infoLogging) log.info "$device.displayName button $button was held"
 				}
 				else if (action == 17) {
-					sendEvent("name": "released", "value":  button, "displayed": true, isStateChange: true)
+					if (state.held) {
+						state.held = false
+						unschedule(deviceReleased);
+					}
+					sendEvent("name": "released", "value":  button, isStateChange: true)
 					if (infoLogging) log.info "$device.displayName button $button was released"
 				}
 				else if (action == 18) {
-					sendEvent("name": "shaken", "value":  button, "displayed": true, isStateChange: true)
+					sendEvent("name": "shaken", "value":  button, isStateChange: true)
 					if (infoLogging) log.info "$device.displayName button $button was shaken"
 				}
 				else if (action == 255) {
-					sendEvent("name": "released", "value":  button, "displayed": true, isStateChange: true)
+					sendEvent("name": "released", "value":  button, isStateChange: true)
 					if (infoLogging) log.info "$device.displayName button $button was released"
 				}
 			}
@@ -344,11 +394,71 @@ def parse(String description) {
 	if (presenceDetect){
 		unschedule(presenceTracker)
 		if (device.currentValue("presence") != "present"){
-			sendEvent("name": "presence", "value":  "present", "displayed": true, isStateChange: true)
+			sendEvent("name": "presence", "value":  "present")
 			if (debugLogging) log.debug "$device.displayName present"
 		}
 		presenceStart()
 	}
+}
+
+def open() {
+	sendEvent("name": "contact", "value":  "open", isStateChange: true)
+	if (infoLogging) log.info "$device.displayName contact changed to open [virtual]"
+}
+
+def closed() {
+	sendEvent("name": "contact", "value":  "closed", isStateChange: true)
+	if (infoLogging) log.info "$device.displayName contact changed to closed [virtual]"
+}
+
+def present() {
+	sendEvent("name": "presence", "value":  "present", isStateChange: true)
+	if (infoLogging) log.info "$device.displayName contact changed to present [virtual]"
+}
+
+def notPresent() {
+	sendEvent("name": "presence", "value":  "not present", isStateChange: true)
+	if (infoLogging) log.info "$device.displayName contact changed to not present [virtual]"
+}
+
+def active() {
+	sendEvent("name": "motion", "value":  "active", isStateChange: true)
+	if (infoLogging) log.info "$device.displayName motion changed to active [virtual]"
+}
+
+def inactive() {
+	sendEvent("name": "motion", "value":  "inactive", isStateChange: true)
+	if (infoLogging) log.info "$device.displayName motion changed to inactive [virtual]"
+}
+
+def push() {
+	sendEvent("name": "pushed", "value":  1, isStateChange: true)
+	if (infoLogging) log.info "$device.displayName pushed [virtual]"
+}
+
+def doubleTap() {
+	sendEvent("name": "doubleTapped", "value":  1, isStateChange: true)
+	if (infoLogging) log.info "$device.displayName doubleTapped [virtual]"
+}
+
+def hold() {
+	sendEvent("name": "held", "value":  1, isStateChange: true)
+	if (infoLogging) log.info "$device.displayName held [virtual]"
+}
+
+def shake() {
+	sendEvent("name": "shaken", "value":  1, isStateChange: true)
+	if (infoLogging) log.info "$device.displayName shaken [virtual]"
+}
+
+def wet() {
+	sendEvent("name": "water", "value":  "wet", isStateChange: true)
+	if (infoLogging) log.info "$device.displayName changed to wet [virtual]"
+}
+
+def dry() {
+	sendEvent("name": "water", "value":  "dry", isStateChange: true)
+	if (infoLogging) log.info "$device.displayName changed to dry [virtual]"
 }
 
 def updated() {
@@ -357,7 +467,7 @@ def updated() {
 }
 
 def presenceTracker() {
-	sendEvent("name": "presence", "value":  "not present", "displayed": true, isStateChange: true)
+	sendEvent("name": "presence", "value":  "not present")
 	if (infoLogging) log.info "$device.displayName not present"
 }
 
@@ -370,8 +480,21 @@ def presenceStart() {
 def deviceHeld() {
 	if (state.held == false){
 		state.held = true
-		sendEvent("name": "held", "value":  1, "displayed": true, isStateChange: true)
-		if (infoLogging) log.info "$device.displayName was held"
+		if (allButtons){
+			sendEvent("name": "pushed", "value": 5, isStateChange: true)
+			if (infoLogging) log.info "$device.displayName button 5 was pushed"
+		} else {
+			sendEvent("name": "held", "value":  1, isStateChange: true)
+			if (infoLogging) log.info "$device.displayName was held"
+		}
+	}
+}
+
+def deviceReleased(button) {
+	if (state.held == true){
+		state.held = false
+		sendEvent("name": "released", "value":  1, isStateChange: true)
+		if (infoLogging) log.info "$device.displayName button $button was released"
 	}
 }
 
@@ -382,8 +505,8 @@ def batteryEvent(rawValue) {
 	def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
 	def batteryValue = Math.min(100, pct)
 	if (batteryValue > 0){
-		sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
-		sendEvent("name": "voltage", "value": batteryVolts, "unit": "volts", "displayed": true, isStateChange: true)
+		sendEvent("name": "battery", "value": batteryValue, "unit": "%")
+		sendEvent("name": "voltage", "value": batteryVolts, "unit": "volts")
 		if (infoLogging) log.info "$device.displayName battery changed to $batteryValue%"
 		if (infoLogging) log.info "$device.displayName voltage changed to $batteryVolts volts"
 	}
@@ -393,7 +516,7 @@ def batteryEvent(rawValue) {
 
 def resetMotion() {
 	if (device.currentState('motion')?.value == "active"){
-		sendEvent("name": "motion", "value": "inactive", "displayed": true, isStateChange: true)
+		sendEvent("name": "motion", "value": "inactive")
 		if (infoLogging) log.info "$device.displayName motion changed to inactive"
 	}
 
@@ -402,15 +525,15 @@ def resetMotion() {
 
 def resetVibration() {
 	if (device.currentState('acceleration')?.value == "active"){
-		sendEvent("name": "acceleration", "value": "inactive", "displayed": true, isStateChange: true)
+		sendEvent("name": "acceleration", "value": "inactive")
 		if (infoLogging) log.info "$device.displayName acceleration changed to inactive"
 	}
 	if (device.currentState('tilt')?.value != "inactive"){
-		sendEvent("name": "tilt", "value": "inactive", "displayed": true, isStateChange: true)
+		sendEvent("name": "tilt", "value": "inactive")
 		if (infoLogging) log.info "$device.displayName tilt changed to inactive"
 	}
 	if (device.currentState('motion')?.value != "inactive"){
-		sendEvent("name": "motion", "value": "inactive", "displayed": true, isStateChange: true)
+		sendEvent("name": "motion", "value": "inactive")
 		if (infoLogging) log.info "$device.displayName motion changed to inactive"
 	}
 
