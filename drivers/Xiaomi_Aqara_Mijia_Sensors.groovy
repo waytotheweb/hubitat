@@ -28,7 +28,9 @@
  *
  *  Changelog:
  *
- *  v0.13 - 
+ *  v0.13 - Modified Temperature Offset setting to float to allow for decimal corrections (e.g. 2.5)
+ *
+ *
  *
  *  v0.12 - Added more presence intervals
  *          Added device Commands, however they are all commented out by default
@@ -196,7 +198,7 @@ def parse(String description) {
 						def Scale = location.temperatureScale
 						if (Scale == "F") rawValue = (rawValue * 1.8) + 32
 						if (temperatureOffset == null) temperatureOffset = "0"
-						def offsetrawValue = (rawValue + temperatureOffset.toInteger())
+						def offsetrawValue = (rawValue + Float.valueOf(temperatureOffset))
 						rawValue = offsetrawValue
 						if (debugLogging) log.debug "Processing Xiaomi data (internal temperature: $rawValue with $internalTempOffset offset and conversion)"
 						if (rawValue > 200 || rawValue < -200){
@@ -242,7 +244,7 @@ def parse(String description) {
 				def Scale = location.temperatureScale
 				if (Scale == "F") rawValue = (rawValue * 1.8) + 32
 				if (temperatureOffset == null) temperatureOffset = "0"
-				def offsetrawValue = (rawValue + temperatureOffset.toInteger())
+				def offsetrawValue = (rawValue  + Float.valueOf(temperatureOffset))
 				rawValue = offsetrawValue
 				if (rawValue > 200 || rawValue < -200){
 					if (infoLogging) log.info "$device.displayName Ignored temperature value: $rawValue\u00B0"+Scale
