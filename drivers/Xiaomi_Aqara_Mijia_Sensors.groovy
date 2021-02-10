@@ -28,6 +28,8 @@
  *
  *  Changelog:
  *
+ *  v0.13 - 
+ *
  *  v0.12 - Added more presence intervals
  *          Added device Commands, however they are all commented out by default
  *          Removed unnecessary "isStateChange:true" for all devices apart from buttons
