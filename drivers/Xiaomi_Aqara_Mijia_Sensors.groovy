@@ -29,8 +29,7 @@
  *  Changelog:
  *
  *  v0.13 - Modified Temperature Offset setting to float to allow for decimal corrections (e.g. 2.5)
- *
- *
+ *          Fixed virtual Release button number assignment
  *
  *  v0.12 - Added more presence intervals
  *          Added device Commands, however they are all commented out by default
@@ -497,7 +496,7 @@ def deviceHeld() {
 def deviceReleased(button) {
 	if (state.held == true){
 		state.held = false
-		sendEvent("name": "released", "value":  1, isStateChange: true)
+		sendEvent("name": "released", "value":  button, isStateChange: true)
 		if (infoLogging) log.info "$device.displayName button $button was released"
 	}
 }
