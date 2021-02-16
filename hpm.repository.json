@@ -17,7 +17,10 @@
       "name": "Fibaro FGR-223 Roller Shutter 3",
       "category": "Convenience",
       "location": "https://raw.githubusercontent.com/waytotheweb/hubitat/main/drivers/Fibaro_FGR-223.manifest.json",
-      "description": "Fibaro FGR-223 Roller Shutter 3 Driver"
+      "description": "Fibaro FGR-223 Roller Shutter 3 Driver",
+      "tags": [
+        "Window Coverings"
+      ]
     }
   ]
 }
