@@ -1,0 +1,18 @@
+{
+  "packageName": "Fibaro FGR-223 Roller Shutter 3",
+  "author": "Jonathan Michaelson (chirpy/waytotheweb)",
+  "version": "0.02",
+  "minimumHEVersion": "0.0",
+  "documentationLink": "https://github.com/waytotheweb/hubitat",
+  "communityLink": "https://community.hubitat.com/t/beta-release-xiaomi-aquara-combined-driver/61630",
+  "dateReleased": "2021-02-16",
+  "drivers": [
+    {
+      "id": "58c3e38c-b156-43d1-bda7-518849e46109",
+      "name": "Fibaro FGR-223 Roller Shutter 3",
+      "namespace": "waytotheweb",
+      "location": "https://raw.githubusercontent.com/waytotheweb/hubitat/main/drivers/Fibaro_FGR-223.groovy",
+      "required": true
+    }
+  ]
+}

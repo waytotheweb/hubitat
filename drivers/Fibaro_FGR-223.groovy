@@ -1,5 +1,7 @@
 /**
- *  Further Hubitat modifications for Fibaro FGR-223 by Jonathan Michaelson:
+ *  Further Hubitat modifications for Fibaro FGR-223 Roller Shutter 3 by Jonathan Michaelson:
+ *
+ *  v0.02:
  *	. Added Info and Debug Logging preferences
  *	. Tidy code formatting
  *	. Updated fingerprint
