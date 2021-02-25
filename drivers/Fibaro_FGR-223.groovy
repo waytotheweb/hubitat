@@ -47,11 +47,14 @@ metadata {
 		capability "Configuration"
 
 		attribute "syncStatus", "enum", ["syncing", "synced"]
+	        attribute "enabled", "enum", ["true", "false"]
 
 		command "sync"
 		command "stop"		
 		command "up"   
-		command "down"   
+		command "down"
+	        command "disable"
+        	command "enable"
 
 		fingerprint deviceId: "1000", mfr:"010F", deviceType:"0303", inClusters:"0x5E,0x55,0x98,0x9F,0x56,0x6C,0x22", deviceJoinName: "Fibaro Roller Shutter 3"
 	}
@@ -271,6 +274,7 @@ def up() {
 }
 
 def down() {
+    
 	if (infoLogging) log.info("Down - Shade state: ${device.currentValue('windowShade')}; Shade level: ${device.currentValue('level')}")
 	def currentWindowShade = device.currentValue('windowShade')
 	if (currentWindowShade == "opening" || currentWindowShade == "closing") {
@@ -302,17 +306,31 @@ def close() {
 }
 
 def privateOpen() {
-	secureSequence([
-		zwave.switchMultilevelV3.switchMultilevelSet(value: 99, dimmingDuration: 0x00),
-		zwave.switchMultilevelV3.switchMultilevelGet()
-	], 2000)
+    if (device.currentValue("enabled") == "true")
+    {
+    	secureSequence([
+		    zwave.switchMultilevelV3.switchMultilevelSet(value: 99, dimmingDuration: 0x00),
+	    	zwave.switchMultilevelV3.switchMultilevelGet()
+    	], 2000)
+    }
+    else
+    {
+        if (infoLogging) log.info ("Command ignored: device is disabled")
+    }
 }
 
 def privateClose() {
-	secureSequence([
-		zwave.switchMultilevelV3.switchMultilevelSet(value: 0, dimmingDuration: 0x00),
-		zwave.switchMultilevelV3.switchMultilevelGet()
-	], 2000)
+    if (device.currentValue("enabled") == "true")
+    {
+        secureSequence([
+		    zwave.switchMultilevelV3.switchMultilevelSet(value: 0, dimmingDuration: 0x00),
+		    zwave.switchMultilevelV3.switchMultilevelGet()
+	    ], 2000)
+    }
+    else
+    {
+        if (infoLogging) log.info ("Command ignored: device is disabled")
+    }
 }
 
 def presetPosition() {
@@ -339,19 +357,26 @@ def setPosition(level) {
 }
 
 def setLevel(level) {
-	if (invert) {
-		level = 100 - level
-	}
-	if(level > 99) level = 99
-	if (level <= (openOffset ?: 95) && level >= (closeOffset ?: 5)) {
-		level = level - (offset ?: 0)
-	}
+    if (device.currentValue("enabled") == "true")
+    {
+        if (invert) {
+	    	level = 100 - level
+	    }
+	    if(level > 99) level = 99
+	    if (level <= (openOffset ?: 95) && level >= (closeOffset ?: 5)) {
+		    level = level - (offset ?: 0)
+	    }
 
-	if (infoLogging) log.info("Set level ${level} s - Shade state: ${device.currentValue('windowShade')}; Shade level: ${device.currentValue('level')}")
-	secureSequence([
-		zwave.switchMultilevelV3.switchMultilevelSet(value: level, dimmingDuration: 0x00),
-		zwave.switchMultilevelV3.switchMultilevelGet()
-	], 10000)
+    	if (infoLogging) log.info("Set level ${level} s - Shade state: ${device.currentValue('windowShade')}; Shade level: ${device.currentValue('level')}")
+	        secureSequence([
+		        zwave.switchMultilevelV3.switchMultilevelSet(value: level, dimmingDuration: 0x00),
+	    	    zwave.switchMultilevelV3.switchMultilevelGet()
+    	    ], 10000)
+    }
+    else
+    {
+        if (infoLogging) log.info ("Command ignored: device is disabled")
+    }
 }
 
 def configure() {
@@ -399,6 +424,16 @@ private secure(hubitat.zwave.Command cmd) {
 
 private secureSequence(Collection commands, ...delayBetweenArgs) {
 	delayBetween(commands.collect{ secure(it) }, *delayBetweenArgs)
+}
+
+def disable ()
+{
+ 	sendEvent(name: "enabled", value: "false", isStateChange: true)   
+}
+
+def enable ()
+{
+ 	sendEvent(name: "enabled", value: "true", isStateChange: true)   
 }
 
 private moduleParams() {
