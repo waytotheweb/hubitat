@@ -1,6 +1,9 @@
 /**
  *  Further Hubitat modifications for Fibaro FGR-223 Roller Shutter 3 by Jonathan Michaelson:
  *
+ *  v0.03:
+ *      . Added modification by MAFFPT to allow a virtual enable/disable of the device
+ *
  *  v0.02:
  *	. Added Info and Debug Logging preferences
  *	. Tidy code formatting
