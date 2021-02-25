@@ -47,11 +47,18 @@ metadata {
 		capability "Configuration"
 
 		attribute "syncStatus", "enum", ["syncing", "synced"]
+        /* BEGIN maffpt */
+        attribute "enabled", "enum", ["true", "false"]
+        /* END maffpt */
 
 		command "sync"
 		command "stop"		
 		command "up"   
-		command "down"   
+		command "down"
+        /* BEGIN maffpt */
+        command "disable"
+        command "enable"
+        /* END maffpt */
 
 		fingerprint deviceId: "1000", mfr:"010F", deviceType:"0303", inClusters:"0x5E,0x55,0x98,0x9F,0x56,0x6C,0x22", deviceJoinName: "Fibaro Roller Shutter 3"
 	}
@@ -271,6 +278,7 @@ def up() {
 }
 
 def down() {
+    
 	if (infoLogging) log.info("Down - Shade state: ${device.currentValue('windowShade')}; Shade level: ${device.currentValue('level')}")
 	def currentWindowShade = device.currentValue('windowShade')
 	if (currentWindowShade == "opening" || currentWindowShade == "closing") {
@@ -302,17 +310,41 @@ def close() {
 }
 
 def privateOpen() {
-	secureSequence([
-		zwave.switchMultilevelV3.switchMultilevelSet(value: 99, dimmingDuration: 0x00),
-		zwave.switchMultilevelV3.switchMultilevelGet()
-	], 2000)
+    /* BEGIN maffpt */
+    if (device.currentValue("enabled") == "true")
+    {
+    /* END maffpt */
+    	secureSequence([
+		    zwave.switchMultilevelV3.switchMultilevelSet(value: 99, dimmingDuration: 0x00),
+	    	zwave.switchMultilevelV3.switchMultilevelGet()
+    	], 2000)
+    /* BEGIN maffpt */
+    }
+    else
+    {
+        if (infoLogging) log.info ("Command ignored: device is disabled")
+        if (debugLogging) log.debug ("Command ignored: device is disabled")
+    }
+    /* END maffpt */
 }
 
 def privateClose() {
-	secureSequence([
-		zwave.switchMultilevelV3.switchMultilevelSet(value: 0, dimmingDuration: 0x00),
-		zwave.switchMultilevelV3.switchMultilevelGet()
-	], 2000)
+    /* BEGIN maffpt */
+    if (device.currentValue("enabled") == "true")
+    {
+    /* END maffpt */
+        secureSequence([
+		    zwave.switchMultilevelV3.switchMultilevelSet(value: 0, dimmingDuration: 0x00),
+		    zwave.switchMultilevelV3.switchMultilevelGet()
+	    ], 2000)
+    /* BEGIN maffpt */
+    }
+    else
+    {
+        if (infoLogging) log.info ("Command ignored: device is disabled")
+        if (debugLogging) log.debug ("Command ignored: device is disabled")
+    }
+    /* END maffpt */
 }
 
 def presetPosition() {
@@ -339,19 +371,31 @@ def setPosition(level) {
 }
 
 def setLevel(level) {
-	if (invert) {
-		level = 100 - level
-	}
-	if(level > 99) level = 99
-	if (level <= (openOffset ?: 95) && level >= (closeOffset ?: 5)) {
-		level = level - (offset ?: 0)
-	}
+    /* BEGIN maffpt */
+    if (device.currentValue("enabled") == "true")
+    {
+    /* END maffpt */
+        if (invert) {
+	    	level = 100 - level
+	    }
+	    if(level > 99) level = 99
+	    if (level <= (openOffset ?: 95) && level >= (closeOffset ?: 5)) {
+		    level = level - (offset ?: 0)
+	    }
 
-	if (infoLogging) log.info("Set level ${level} s - Shade state: ${device.currentValue('windowShade')}; Shade level: ${device.currentValue('level')}")
-	secureSequence([
-		zwave.switchMultilevelV3.switchMultilevelSet(value: level, dimmingDuration: 0x00),
-		zwave.switchMultilevelV3.switchMultilevelGet()
-	], 10000)
+    	if (infoLogging) log.info("Set level ${level} s - Shade state: ${device.currentValue('windowShade')}; Shade level: ${device.currentValue('level')}")
+	        secureSequence([
+		        zwave.switchMultilevelV3.switchMultilevelSet(value: level, dimmingDuration: 0x00),
+	    	    zwave.switchMultilevelV3.switchMultilevelGet()
+    	    ], 10000)
+    /* BEGIN maffpt */
+    }
+    else
+    {
+        if (infoLogging) log.info ("Command ignored: device is disabled")
+        if (debugLogging) log.debug ("Command ignored: device is disabled")
+    }
+    /* END maffpt */
 }
 
 def configure() {
@@ -400,6 +444,18 @@ private secure(hubitat.zwave.Command cmd) {
 private secureSequence(Collection commands, ...delayBetweenArgs) {
 	delayBetween(commands.collect{ secure(it) }, *delayBetweenArgs)
 }
+
+// BEGIN maffpt
+def disable ()
+{
+ 	sendEvent(name: "enabled", value: "false", isStateChange: true)   
+}
+
+def enable ()
+{
+ 	sendEvent(name: "enabled", value: "true", isStateChange: true)   
+}
+// END maffpt
 
 private moduleParams() {
 	return [
