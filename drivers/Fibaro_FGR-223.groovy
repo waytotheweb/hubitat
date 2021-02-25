@@ -1,8 +1,11 @@
 /**
  *  Further Hubitat modifications for Fibaro FGR-223 Roller Shutter 3 by Jonathan Michaelson:
  *
+ *  v0.04:
+ *	. Ensure device is enabled (or null) so existing devices function as expected
+ *
  *  v0.03:
- *      . Added modification by MAFFPT to allow a virtual enable/disable of the device
+ *	. Added modification by MAFFPT to allow a virtual enable/disable of the device
  *
  *  v0.02:
  *	. Added Info and Debug Logging preferences
@@ -56,8 +59,8 @@ metadata {
 		command "stop"		
 		command "up"   
 		command "down"
-	        command "disable"
-        	command "enable"
+		command "disable"
+		command "enable"
 
 		fingerprint deviceId: "1000", mfr:"010F", deviceType:"0303", inClusters:"0x5E,0x55,0x98,0x9F,0x56,0x6C,0x22", deviceJoinName: "Fibaro Roller Shutter 3"
 	}
@@ -309,7 +312,7 @@ def close() {
 }
 
 def privateOpen() {
-    if (device.currentValue("enabled") == "true")
+    if (device.currentValue("enabled") == "true" || device.currentValue("enabled") == null)
     {
     	secureSequence([
 		    zwave.switchMultilevelV3.switchMultilevelSet(value: 99, dimmingDuration: 0x00),
@@ -323,7 +326,7 @@ def privateOpen() {
 }
 
 def privateClose() {
-    if (device.currentValue("enabled") == "true")
+    if (device.currentValue("enabled") == "true" || device.currentValue("enabled") == null)
     {
         secureSequence([
 		    zwave.switchMultilevelV3.switchMultilevelSet(value: 0, dimmingDuration: 0x00),
@@ -360,7 +363,7 @@ def setPosition(level) {
 }
 
 def setLevel(level) {
-    if (device.currentValue("enabled") == "true")
+    if (device.currentValue("enabled") == "true" || device.currentValue("enabled") == null)
     {
         if (invert) {
 	    	level = 100 - level
