@@ -47,18 +47,14 @@ metadata {
 		capability "Configuration"
 
 		attribute "syncStatus", "enum", ["syncing", "synced"]
-        /* BEGIN maffpt */
-        attribute "enabled", "enum", ["true", "false"]
-        /* END maffpt */
+	        attribute "enabled", "enum", ["true", "false"]
 
 		command "sync"
 		command "stop"		
 		command "up"   
 		command "down"
-        /* BEGIN maffpt */
-        command "disable"
-        command "enable"
-        /* END maffpt */
+	        command "disable"
+        	command "enable"
 
 		fingerprint deviceId: "1000", mfr:"010F", deviceType:"0303", inClusters:"0x5E,0x55,0x98,0x9F,0x56,0x6C,0x22", deviceJoinName: "Fibaro Roller Shutter 3"
 	}
@@ -310,41 +306,31 @@ def close() {
 }
 
 def privateOpen() {
-    /* BEGIN maffpt */
     if (device.currentValue("enabled") == "true")
     {
-    /* END maffpt */
     	secureSequence([
 		    zwave.switchMultilevelV3.switchMultilevelSet(value: 99, dimmingDuration: 0x00),
 	    	zwave.switchMultilevelV3.switchMultilevelGet()
     	], 2000)
-    /* BEGIN maffpt */
     }
     else
     {
         if (infoLogging) log.info ("Command ignored: device is disabled")
-        if (debugLogging) log.debug ("Command ignored: device is disabled")
     }
-    /* END maffpt */
 }
 
 def privateClose() {
-    /* BEGIN maffpt */
     if (device.currentValue("enabled") == "true")
     {
-    /* END maffpt */
         secureSequence([
 		    zwave.switchMultilevelV3.switchMultilevelSet(value: 0, dimmingDuration: 0x00),
 		    zwave.switchMultilevelV3.switchMultilevelGet()
 	    ], 2000)
-    /* BEGIN maffpt */
     }
     else
     {
         if (infoLogging) log.info ("Command ignored: device is disabled")
-        if (debugLogging) log.debug ("Command ignored: device is disabled")
     }
-    /* END maffpt */
 }
 
 def presetPosition() {
@@ -371,10 +357,8 @@ def setPosition(level) {
 }
 
 def setLevel(level) {
-    /* BEGIN maffpt */
     if (device.currentValue("enabled") == "true")
     {
-    /* END maffpt */
         if (invert) {
 	    	level = 100 - level
 	    }
@@ -388,14 +372,11 @@ def setLevel(level) {
 		        zwave.switchMultilevelV3.switchMultilevelSet(value: level, dimmingDuration: 0x00),
 	    	    zwave.switchMultilevelV3.switchMultilevelGet()
     	    ], 10000)
-    /* BEGIN maffpt */
     }
     else
     {
         if (infoLogging) log.info ("Command ignored: device is disabled")
-        if (debugLogging) log.debug ("Command ignored: device is disabled")
     }
-    /* END maffpt */
 }
 
 def configure() {
@@ -445,7 +426,6 @@ private secureSequence(Collection commands, ...delayBetweenArgs) {
 	delayBetween(commands.collect{ secure(it) }, *delayBetweenArgs)
 }
 
-// BEGIN maffpt
 def disable ()
 {
  	sendEvent(name: "enabled", value: "false", isStateChange: true)   
@@ -455,7 +435,6 @@ def enable ()
 {
  	sendEvent(name: "enabled", value: "true", isStateChange: true)   
 }
-// END maffpt
 
 private moduleParams() {
 	return [
