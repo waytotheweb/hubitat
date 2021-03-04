@@ -1,18 +1,18 @@
-1D 01 21 E50B 03 28 1D 04 21 A813 05 21 1900 06 24 01000000000A210000641000
-1D 01 21 E50B 03 28 1D 04 21 A813 05 21 1900 06 24 01000000000A210000641000
-1D 01 21 E50B 03 28 1F 04 21 A813 05 21 1900 06 24 01000000000A210000641000
-1D 01 21 DB0B 03 28 1E 04 21 A813 05 21 1900 06 24 03000100000A210000641000
-1D 01 21 EF0B 03 28 21 04 21 A801 05 21 1700 06 24 01000000000A210000641001
-1D 01 21 E50B 03 28 1E 04 21 A813 05 21 1900 06 24 01000000000A210000641000
+1D 01 21 E50B 03 28 1D 04 21 A813 05 21 1900 06 2401 00000000 0A 210000 6410 00
+1D 01 21 E50B 03 28 1D 04 21 A813 05 21 1900 06 2401 00000000 0A 210000 6410 00
+1D 01 21 E50B 03 28 1F 04 21 A813 05 21 1900 06 2401 00000000 0A 210000 6410 00
+1D 01 21 DB0B 03 28 1E 04 21 A813 05 21 1900 06 2403 00010000 0A 210000 6410 00
+1D 01 21 EF0B 03 28 21 04 21 A801 05 21 1700 06 2401 00000000 0A 210000 6410 01
+1D 01 21 E50B 03 28 1E 04 21 A813 05 21 1900 06 2401 00000000 0A 210000 6410 00
 
 01 23 45 6789 01 23 45 67
 
 
-42 1D 01 21 E50B03281D0421A81305211900062401000000000A210000641000
+42 1D 01 21 E50B03281D0421A81305211900062401000000000A210000 6410 00
 
 
 
-25 01 21 D10B 04 21 A813 05 21 0F00 06 24 00000000006429890A6521AA0F662BC58601000A21A9C0
+25 01 21 D10B 04 21 A813 05 21 0F00 06 2400 00000000 6429 890A 6521 AA0F 66 2BC5 860100 0A 21A9 C0
 
 
 
@@ -25,8 +25,8 @@ lumi.sensor_switch.aq3
 lumi.sensor_wleak.aq1
 
 110:
-1D 01 21 C70B 03 28 1E 04 21 A813 05 21 2100 06 24 01 000000000A210000641000
-1D 01 21 C70B 03 28 1E 04 21 A813 05 21 2100 06 24 0F 000000000A210000641000
+1D 01 21 C70B 03 28 1E 04 21 A813 05 21 2100 06 24 01 000000000A210000 6410 00
+1D 01 21 C70B 03 28 1E 04 21 A813 05 21 2100 06 24 0F 000000000A210000 6410 00
 
 
 
@@ -35,3 +35,186 @@ lumi.sensor_wleak.aq1
 06 0010 01 21 C70B 21 A813 24 01 000000002117002052
 06 0010 01 21 C70B 21 A813 24 03 000000002117002051
 06 0010 01 21 C70B 21 A813 24 0B 000000002117002050
+
+
+
+
+					    1                       2
+                     1 2  3 4  5 6  7  8 9  0 1  2 3  4 5  6 7  8 9 0 1 2  3 4  5 6
+         attr tp  l   battery    temp             RSSI dB             LQI
+         ---- -- -- --------- ------- --------- --------- --------------- ---------
+switch:  01ff 42 1a 0121 db0b 0328 15 0421 a833 0521 9400 0624 0100000000 0a21 3974
+                 26    3.035V
+
+                                            1                       2
+                     1 2  3 4  5 6  7  8 9  0 1  2 3  4 5  6 7  8 9 0 1 2  3 4  5 6  7 8  9
+         attr tp  l   battery    temp             RSSI dB             LQI                On
+         ---- -- -- --------- ------- --------- --------- --------------- --------- -------
+door:    01ff 42 1d 0121 d10b 0328 15 0421 a813 0521 a200 0624 0300000000 0a21 0000 6410 00
+                 29    3.025V
+door:    01ff 42 1d 0121 db0b 0328 14 0421 a843 0521 9a00 0624 0100000000 0a21 c841 6410 00
+                 29    3.025V
+door:    01ff 42 1d 0121 bd0b 0328 15 0421 a833 0521 3b00 0624 0100000000 0a21 9ff8 6410 00
+                 29    3.025V
+door:    01ff 42 1d 0121 c70b 0328 13 0421 a813 0521 9200 0624 0100000000 0a21 c96b 6410 00
+                 29    3.015V
+
+                                            1                       2                       3
+                     1 2  3 4  5 6  7  8 9  0 1  2 3  4 5  6 7  8 9 0 1 2  3 4  5 6  7 8  9 0  1 2  3
+         attr tp  l   battery    temp             RSSI dB             LQI                          On
+         ---- -- -- --------- ------- --------- --------- --------------- --------- --------- -------
+wleak:   01ff 42 22 0121 db0b 0328 18 0421 a833 0521 5400 0624 0100000000 0821 0402 0a21 1e67 6410 00
+                 34    3.035V
+
+                                                   1                       2                        3
+                     1 2  3 4          5 6  7 8  9 0  1 2  3 4  5 6 7 8 9  0 1  2 3  4 5  6 7  8 9  0 1 2 3  4 5  6 7
+         attr tp  l   battery                     RSSI dB             LQI      temp  humidity      pressure
+         ---- -- -- ---------         --------- --------- --------------- --------- --------- ------------- ---------
+weather: 01ff 42 25 0121 8b0b         0421 a843 0521 2b00 0624 0100000000 6429 b001 6521 f719 662b 4a8f0100 0a21 c96b
+                 37    2.955V                                                 4.32°C    66.47%    1022.18hPa
+weather: 01ff 42 25 0121 b30b         0421 a843 0521 1300 0624 0100000000 6429 1509 6521 9a0b 662b 148f0100 0a21 5938
+                 37    2.995V                                                23.25°C    29.70%    1021.64hPa
+
+                                            1                        2                      3                        4
+                     1 2  3 4  5 6  7  8 9  0 1  2 3  4 5  6 7  8 9 0 1 2  3 4  5 6  7 8  9 0  1 2  3 4  5 6  7 8  9 0  1 2
+         attr tp  l   battery    temp             RSSI dB             LQI
+         ---- -- -- --------- ------- --------- --------- --------------- --------- --------- --------- --------- ---------
+cube:    01ff 42 2a 0121 bd0b 0328 17 0421 a843 0521 c200 0624 0100000000 0a21 0a51 9721 0000 9821 0c08 9921 bb07 9a21 0300
+                 42    3.035V
+
+
+
+0x0121:
+    0x01     battery
+    0x21     ZCL datatype 16-bit unsigned int
+
+0x0328:
+    0x03     temperature
+    0x28     ZCL datatype 8-bit signed int
+
+0x0421:
+    0x04     ????
+    0x21     ZCL datatype 16-bit unsigned int
+
+0x0521:
+    0x05     ????
+    0x21     ZCL datatype 16-bit unsigned int
+
+0x0624:
+    0x06     ????
+    0x21     ZCL datatype 40-bit unsigned int
+
+0x0a21:
+    0x0a     ????
+    0x21     ZCL datatype 16-bit unsigned int
+
+0x6410:
+    0x64     on/off state
+    0x10     ZCL datatype bool
+
+0x6429:
+    0x64     temperature
+    0x29     ZCL datatype 16-bit signed integer
+
+0x6529:
+    0x64     humidity
+    0x29     ZCL datatype 16-bit signed integer
+
+0x662b:
+    0x66     pressure
+    0x2b     ZCL datatype 32-bit signed integer
+
+
+
+
+
+
+Xiaomi Water Leak Detector
+lumi.sensor_wleak.aq1
+
+raw	id	zcl type	value	comment
+01 21 9F 0B	1	33 (UNSIGNED_16_BIT_INTEGER)	2975	2.975V (battery)
+03 28 1E	3	40 (SIGNED_8_BIT_INTEGER)	30	
+04 21 A8 13	4	33 (UNSIGNED_16_BIT_INTEGER)	5032	
+05 21 3B 00	5	33 (UNSIGNED_16_BIT_INTEGER)	59	
+06 24 01 00 00 00 00	6	36 (UNSIGNED_40_BIT_INTEGER)	0x0100000000	
+08 21 04 02	8	33 (UNSIGNED_16_BIT_INTEGER)	516	
+0A 21 00 00	10	33 (UNSIGNED_16_BIT_INTEGER)	0	
+64 10 01	100	16 (Boolean)	1	on/off state
+Xiaomi Temperature and Humidity Sensor
+lumi.weather
+
+raw	id	zcl type	value	comment
+01 21 9F 0B	1	33 (UNSIGNED_16_BIT_INTEGER)	2975	2.975V (battery)
+04 21 A8 13	4	33 (UNSIGNED_16_BIT_INTEGER)	5032	
+05 21 15 00	5	33 (UNSIGNED_16_BIT_INTEGER)	21	
+06 24 01 00 00 00 00	6	36 (UNSIGNED_40_BIT_INTEGER)	0x0100000000	
+0A 21 00 00	10	33 (UNSIGNED_16_BIT_INTEGER)	0	
+64 29 0F 04	100	41 (SIGNED_16_BIT_INTEGER)	1039	10.39°C
+65 21 49 12	101	33 (UNSIGNED_16_BIT_INTEGER)	4681	46.81% RH
+66 2B 95 85 01 00	102	43 (SIGNED_32_BIT_INTEGER)	99733	997.33 hPa
+Xiaomi Wireless Relay
+lumi.relay.c2acn01
+
+raw	id	zcl type	value	comment
+03 28 24	3	40 (SIGNED_8_BIT_INTEGER)	36	
+05 21 09 00	5	33 (UNSIGNED_16_BIT_INTEGER)	9	
+07 27 00 00 00 00 00 00 00 00	7	39 (UNSIGNED_64_BIT_INTEGER)	0	
+08 21 23 12	8	33 (UNSIGNED_16_BIT_INTEGER)	4643	
+09 21 00 01	9	33 (UNSIGNED_16_BIT_INTEGER)	256	
+64 10 01	100	16 (Boolean)	1	on/off state
+65 10 00	101	16 (Boolean)	0	on/off state
+6E 20 01	110	32 (UNSIGNED_8_BIT_INTEGER)	1	
+6F 20 00	111	32 (UNSIGNED_8_BIT_INTEGER)	0	
+94 20 4F	148	32 (UNSIGNED_8_BIT_INTEGER)	79	
+95 39 66 66 66 3D	149	57 (FLOAT_32_BIT)	0.056250	
+96 39 51 6A 0B 45	150	57 (FLOAT_32_BIT)	2230.644775	voltage
+97 39 A3 20 A5 3D	151	57 (FLOAT_32_BIT)	0.080629	
+98 39 25 AF 63 41	152	57 (FLOAT_32_BIT)	14.230260	
+9B 21 00 00	155	33 (UNSIGNED_16_BIT_INTEGER)	0	
+
+
+
+
+
+
+
+
+    Map tags = [
+        '01': 'battery',
+        '03': 'deviceTemperature',
+        '04': 'unknown1',
+        '05': 'RSSI_dB',
+        '06': 'LQI',
+        '07': 'unknown2',
+        '08': 'unknown3',
+        '09': 'unknown4',
+        '0A': 'routerid',
+        '0B': 'unknown5',
+        '0C': 'unknown6',
+        '6429': 'temperature',
+        '6410': 'openClose',
+        '6420': 'curtainPosition',
+        '6521': 'humidity',
+        '6510': 'switch2',
+        '66': 'pressure',
+        '6E': 'unknown10',
+        '6F': 'unknown11',
+        '95': 'consumption',
+        '96': 'voltage',
+        '98': 'power',
+        '9721': 'gestureCounter1',
+        '9739': 'consumption',
+        '9821': 'gestureCounter2',
+        '9839': 'power',
+        '99': 'gestureCounter3',
+        '9A21': 'gestureCounter4',
+        '9A20': 'unknown7',
+        '9A25': 'accelerometerXYZ',
+        '9B': 'unknown9',
+    ]
+    if(isFCC0 == true) {
+        tags['05'] = 'numBoots'
+        tags['6410'] = 'onOff'
+        tags['95'] = 'current'
+    }
