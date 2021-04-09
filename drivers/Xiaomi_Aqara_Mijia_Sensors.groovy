@@ -28,6 +28,10 @@
  *
  *  Changelog:
  *
+ *  v0.14 - Improvements to Presence initialisation
+ *          Changed from BETA to RELEASE
+ *
+ *
  *  v0.13 - Modified Temperature Offset setting to float to allow for decimal corrections (e.g. 2.5)
  *          Fixed virtual Release button number assignment
  *
@@ -477,6 +481,7 @@ def presenceTracker() {
 def presenceStart() {
 	if (presenceHours == null) presenceHours = "12"
 	def scheduleHours = presenceHours.toInteger() * 60 * 60
+	if (infoLogging) log.info "$device.displayName presense check in ${scheduleHours} hours"
 	runIn(scheduleHours, "presenceTracker")
 }
 
