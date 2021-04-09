@@ -28,7 +28,9 @@
  *
  *  Changelog:
  *
- *  v0.14 - Improvements to Presence initialisation
+ *  v0.14 - Improvements to Presence detection - You should check each device
+	    and hit Configure to ensure each device has the presenceTracker job
+	    schedules
  *          Changed from BETA to RELEASE
  *
  *
@@ -398,7 +400,7 @@ def parse(String description) {
 			}
 		}
 	}
-	if (presenceDetect){
+	if (presenceDetect != false) {
 		unschedule(presenceTracker)
 		if (device.currentValue("presence") != "present"){
 			sendEvent("name": "presence", "value":  "present")
@@ -470,18 +472,20 @@ def dry() {
 
 def updated() {
 	unschedule(presenceTracker)
-	if (presenceDetect) presenceStart()
+	if (presenceDetect != false) presenceStart()
 }
 
 def presenceTracker() {
 	sendEvent("name": "presence", "value":  "not present")
 	if (infoLogging) log.info "$device.displayName not present"
+	presenceStart()
 }
 
 def presenceStart() {
-	if (presenceHours == null) presenceHours = "12"
+	if (presenceHours == null || presenceHours == "") presenceHours = "12"
 	def scheduleHours = presenceHours.toInteger() * 60 * 60
-	if (infoLogging) log.info "$device.displayName presense check in ${scheduleHours} hours"
+	if (scheduleHours < 1 || scheduleHours > 86400) scheduleHours = 43200
+	if (infoLogging) log.info "$device.displayName presense check in ${presenceHours} hours"
 	runIn(scheduleHours, "presenceTracker")
 }
 
@@ -583,7 +587,7 @@ def configure() {
 	unschedule()
 	state.clear()
 
-	if (presenceDetect) presenceStart()
+	if (presenceDetect != false) presenceStart()
 
 	cmd = [
 		"zdo bind 0x${device.deviceNetworkId} 0x${device.endpointId} 0x01 0x0000 {${device.zigbeeId}} {}",
