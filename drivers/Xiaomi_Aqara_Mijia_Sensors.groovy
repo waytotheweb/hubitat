@@ -29,10 +29,9 @@
  *  Changelog:
  *
  *  v0.14 - Improvements to Presence detection - You should check each device
-	    and hit Configure to ensure each device has the presenceTracker job
-	    schedules
+ *          and hit Configure to ensure each device has the presenceTracker job
+ *          schedules
  *          Changed from BETA to RELEASE
- *
  *
  *  v0.13 - Modified Temperature Offset setting to float to allow for decimal corrections (e.g. 2.5)
  *          Fixed virtual Release button number assignment
