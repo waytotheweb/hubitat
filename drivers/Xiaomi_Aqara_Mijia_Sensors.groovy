@@ -28,6 +28,10 @@
  *
  *  Changelog:
  *
+ *  v0.15 - Update contact/water sensors from the (ir)regular device data
+ *          updates in case of sensor bounce leaving it in an incorrect state
+ *          Added VoltageMeasurement as a capability
+ *
  *  v0.14 - Improvements to Presence detection - You should check each device
  *          and hit Configure to ensure each device has the presenceTracker job
  *          schedules
@@ -85,6 +89,7 @@ import hubitat.helper.HexUtils
 metadata {
 	definition (name: "Xiaomi Aqara Mijia Sensors and Switches", namespace: "waytotheweb", author: "Jonathan Michaelson", importUrl: "https://raw.githubusercontent.com/waytotheweb/hubitat/main/drivers/Xiaomi_Aqara_Mijia_Sensors.groovy") {
 		capability "Battery"
+		capability "VoltageMeasurement"
 		capability "Sensor"
 		capability "Refresh"
 		capability "Configuration"
@@ -104,7 +109,6 @@ metadata {
 		capability "DoubleTapableButton"
 		capability "ReleasableButton"
 
-		attribute "voltage", "number"
 		attribute "tilt", "string"
 		attribute "taps", "number"
 		attribute "released", "number"
@@ -210,6 +214,29 @@ def parse(String description) {
 						} else {
 							sendEvent("name": "temperature", "value": rawValue, "unit": "\u00B0"+Scale)
 							if (infoLogging) log.info "$device.displayName internal temperature changed to $rawValue\u00B0"+Scale
+						}
+					}
+					if (mydescMap.attrId == "FF01" && mydescMap.value[-6..-3] == "6410"){
+						rawValue = (mydescMap.value[-2..-1]).toInteger()
+						if (getDeviceDataByName('model').contains("magnet")){
+							if (debugLogging) log.debug "Processing Xiaomi data (contact status) = ${rawValue}"
+							def contact = "closed"
+							if (rawValue == 1) contact = "open"
+							sendEvent("name": "contact", "value": contact)
+							if (infoLogging) log.info "$device.displayName contact updated to $contact"
+							if (motionContact){
+								def motion = "inactive"
+								if (rawValue == 1) motion = "active"
+								sendEvent("name": "motion", "value": motion)
+								if (infoLogging) log.info "$device.displayName motion updated to $motion"
+							}
+						}
+						if (getDeviceDataByName('model').contains("leak")){
+							if (debugLogging) log.debug "Processing Xiaomi data (leak status) = ${rawValue}"
+							def contact = "dry"
+							if (rawValue == 1) contact = "wet"
+							sendEvent("name": "water", "value": contact)
+							if (infoLogging) log.info "$device.displayName water updated to $contact"
 						}
 					}
 				}
