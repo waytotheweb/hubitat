@@ -28,6 +28,9 @@
  *
  *  Changelog:
  *
+ *  v0.16 - Added decoding of the (ir)regular device data for devices that use
+ *          the 4C FF02 encoding (i.e. Xiaomi Mijia Door and Window Sensor)
+ *
  *  v0.15 - Update contact/water sensors from the (ir)regular device data
  *          updates in case of sensor bounce leaving it in an incorrect state
  *          Added VoltageMeasurement as a capability
@@ -237,6 +240,22 @@ def parse(String description) {
 							if (rawValue == 1) contact = "wet"
 							sendEvent("name": "water", "value": contact)
 							if (infoLogging) log.info "$device.displayName water updated to $contact"
+						}
+					}
+					if (mydescMap.attrId == "FF02" && mydescMap.value[0..5] == "060010"){
+						rawValue = (mydescMap.value[6..7]).toInteger()
+						if (getDeviceDataByName('model').contains("magnet")){
+							if (debugLogging) log.debug "Processing Xiaomi data (contact status) = ${rawValue}"
+							def contact = "closed"
+							if (rawValue == 1) contact = "open"
+							sendEvent("name": "contact", "value": contact)
+							if (infoLogging) log.info "$device.displayName contact updated to $contact"
+							if (motionContact){
+								def motion = "inactive"
+								if (rawValue == 1) motion = "active"
+								sendEvent("name": "motion", "value": motion)
+								if (infoLogging) log.info "$device.displayName motion updated to $motion"
+							}
 						}
 					}
 				}
