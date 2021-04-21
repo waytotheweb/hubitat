@@ -28,6 +28,8 @@
  *
  *  Changelog:
  *
+ *  v0.17 - Check device model is set before interrogating it
+ *
  *  v0.16 - Added decoding of the (ir)regular device data for devices that use
  *          the 4C FF02 encoding (i.e. Xiaomi Mijia Door and Window Sensor)
  *
@@ -221,7 +223,7 @@ def parse(String description) {
 					}
 					if (mydescMap.attrId == "FF01" && mydescMap.value[-6..-3] == "6410"){
 						rawValue = (mydescMap.value[-2..-1]).toInteger()
-						if (getDeviceDataByName('model').contains("magnet")){
+						if (device.getDataValue("model") != null && getDataValue("model").contains("magnet")){
 							if (debugLogging) log.debug "Processing Xiaomi data (contact status) = ${rawValue}"
 							def contact = "closed"
 							if (rawValue == 1) contact = "open"
@@ -234,7 +236,7 @@ def parse(String description) {
 								if (infoLogging) log.info "$device.displayName motion updated to $motion"
 							}
 						}
-						if (getDeviceDataByName('model').contains("leak")){
+						if (device.getDataValue("model") != null && getDataValue("model").contains("leak")){
 							if (debugLogging) log.debug "Processing Xiaomi data (leak status) = ${rawValue}"
 							def contact = "dry"
 							if (rawValue == 1) contact = "wet"
@@ -244,7 +246,7 @@ def parse(String description) {
 					}
 					if (mydescMap.attrId == "FF02" && mydescMap.value[0..5] == "060010"){
 						rawValue = (mydescMap.value[6..7]).toInteger()
-						if (getDeviceDataByName('model').contains("magnet")){
+						if (device.getDataValue("model") != null && getDataValue("model").contains("magnet")){
 							if (debugLogging) log.debug "Processing Xiaomi data (contact status) = ${rawValue}"
 							def contact = "closed"
 							if (rawValue == 1) contact = "open"
@@ -285,7 +287,7 @@ def parse(String description) {
 				def rawEncoding = Integer.parseInt(descMap.encoding, 16)
 				def rawLux = Integer.parseInt(descMap.value,16)
 				def lux = rawLux > 0 ? Math.round(Math.pow(10,(rawLux/10000)) - 1) : 0
-				if (getDeviceDataByName('model') == "lumi.sensor_motion.aq2") lux = rawLux
+				if (getDataValue("model") == "lumi.sensor_motion.aq2") lux = rawLux
 				sendEvent("name": "illuminance", "value": lux, "unit": "lux")
 				if (infoLogging) log.info "$device.displayName illuminance changed to $lux"
 			}
@@ -358,11 +360,11 @@ def parse(String description) {
 					sendEvent("name": "motion", "value": motion)
 					if (infoLogging) log.info "$device.displayName motion changed to $motion"
 				}
-				if (getDeviceDataByName('model') == "lumi.sensor_switch.aq2"){
+				if (getDataValue("model") == "lumi.sensor_switch.aq2"){
 					sendEvent("name": "pushed", "value": 1, isStateChange: true)
 					if (infoLogging) log.info "$device.displayName was pushed"
 				}
-				if (getDeviceDataByName('model') == "lumi.sensor_switch"){
+				if (getDataValue("model") == "lumi.sensor_switch"){
 					if (rawValue == 0){
 						int thisHold = Float.valueOf(holdDuration) * 1000
 						runInMillis(thisHold, deviceHeld)
@@ -387,7 +389,7 @@ def parse(String description) {
 					}
 				}
 			}
-			else if (descMap.cluster == "0006" && descMap.attrId == "8000" && (getDeviceDataByName('model') == "lumi.sensor_switch" || getDeviceDataByName('model') == "lumi.sensor_switch.aq2")) {
+			else if (descMap.cluster == "0006" && descMap.attrId == "8000" && (getDataValue("model") == "lumi.sensor_switch" || getDataValue("model") == "lumi.sensor_switch.aq2")) {
 				def rawValue = Integer.parseInt(descMap.value,16)
 				if (rawValue > 4) rawValue = 4
 				sendEvent("name": "taps", "value":  rawValue, isStateChange: true)
