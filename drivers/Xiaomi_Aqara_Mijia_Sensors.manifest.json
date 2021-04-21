@@ -1,11 +1,11 @@
 {
   "packageName": "Xiaomi Aqara Mijia Sensors and Switches",
   "author": "Jonathan Michaelson (chirpy/waytotheweb)",
-  "version": "0.16",
+  "version": "0.17",
   "minimumHEVersion": "0.0",
   "documentationLink": "https://github.com/waytotheweb/hubitat",
   "communityLink": "https://community.hubitat.com/t/beta-release-xiaomi-aquara-combined-driver/61630",
-  "dateReleased": "2021-04-16",
+  "dateReleased": "2021-04-21",
   "drivers": [
     {
       "id": "78e2689b-12bc-449d-90f5-bb0aa5ec2b95",
