@@ -28,6 +28,9 @@
  *
  *  Changelog:
  *
+ *  v0.18 - Added the ability to pass a button number and default none to 1 - thanks to @FourEyedPanda
+ *          Added the release command to the available list
+ *
  *  v0.17 - Check device model is set before interrogating it
  *
  *  v0.16 - Added decoding of the (ir)regular device data for devices that use
