@@ -137,6 +137,7 @@ metadata {
 //		command "push"
 //		command "hold"
 //		command "doubleTap"
+//		command "release"
 //		command "shake"
 //		command "wet"
 //		command "dry"
