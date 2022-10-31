@@ -488,19 +488,24 @@ def inactive() {
 	if (infoLogging) log.info "$device.displayName motion changed to inactive [virtual]"
 }
 
-def push() {
-	sendEvent("name": "pushed", "value":  1, isStateChange: true)
-	if (infoLogging) log.info "$device.displayName pushed [virtual]"
+def push(button = 1) {
+	sendEvent("name": "pushed", "value":  button, isStateChange: true)
+	if (infoLogging) log.info "$device.displayName pushed $button [virtual]"
 }
 
-def doubleTap() {
-	sendEvent("name": "doubleTapped", "value":  1, isStateChange: true)
-	if (infoLogging) log.info "$device.displayName doubleTapped [virtual]"
+def doubleTap(button = 1) {
+	sendEvent("name": "doubleTapped", "value":  button, isStateChange: true)
+	if (infoLogging) log.info "$device.displayName doubleTapped $button [virtual]"
 }
 
-def hold() {
-	sendEvent("name": "held", "value":  1, isStateChange: true)
-	if (infoLogging) log.info "$device.displayName held [virtual]"
+def hold(button = 1) {
+	sendEvent("name": "held", "value":  button, isStateChange: true)
+	if (infoLogging) log.info "$device.displayName held $button [virtual]"
+}
+
+def release(button = 1) {
+	sendEvent("name": "released", "value":  button, isStateChange: true)
+	if (infoLogging) log.info "$device.displayName released $button [virtual]"
 }
 
 def shake() {
